@@ -7,8 +7,8 @@ import { nasabahList } from "@/data/nasabah";
 
 export default function LaporanPage() {
   // Calculate statistics
-  const totalNasabah = nasabahList.length;
-  const totalNasabahAktif = nasabahList.filter(n => n.status === "aktif").length;
+  const totalUser = nasabahList.length;
+  const totalUserAktif = nasabahList.filter(n => n.status === "aktif").length;
   const totalTransaksi = wasteTransactions.length;
   const totalSampahDiolah = wasteTransactions.reduce((total, t) => total + t.berat, 0);
   const totalPointDistribusi = wasteTransactions
@@ -25,9 +25,9 @@ export default function LaporanPage() {
     return acc;
   }, {});
 
-  // Nasabah statistics
-  const nasabahStats = nasabahList.map(n => {
-    const transactions = wasteTransactions.filter(t => t.nasabahId === n.id);
+  // User statistics
+  const userStats = nasabahList.map(n => {
+    const transactions = wasteTransactions.filter(t => t.userId === n.id);
     const totalPoint = transactions
       .filter(t => t.status === "selesai")
       .reduce((total, t) => total + t.nilaiTukar, 0);
@@ -66,12 +66,12 @@ export default function LaporanPage() {
           <div className="rounded-lg border border-border bg-white p-4 dark:bg-slate-900">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Total Nasabah</p>
-                <p className="mt-2 text-2xl font-bold">{totalNasabah}</p>
+                <p className="text-sm text-muted-foreground">Total User</p>
+                <p className="mt-2 text-2xl font-bold">{totalUser}</p>
               </div>
               <Users className="h-8 w-8 text-blue-500" />
             </div>
-            <p className="mt-2 text-xs text-green-600">✓ {totalNasabahAktif} aktif</p>
+            <p className="mt-2 text-xs text-green-600">✓ {totalUserAktif} aktif</p>
           </div>
 
           <div className="rounded-lg border border-border bg-white p-4 dark:bg-slate-900">
@@ -82,7 +82,7 @@ export default function LaporanPage() {
               </div>
               <BarChart3 className="h-8 w-8 text-green-500" />
             </div>
-            <p className="mt-2 text-xs text-gray-600">Rata-rata per nasabah: {(totalTransaksi / totalNasabah).toFixed(1)}</p>
+            <p className="mt-2 text-xs text-gray-600">Rata-rata per user: {(totalTransaksi / totalUser).toFixed(1)}</p>
           </div>
 
           <div className="rounded-lg border border-border bg-white p-4 dark:bg-slate-900">
@@ -156,14 +156,14 @@ export default function LaporanPage() {
               </tr>
             </thead>
             <tbody>
-              {nasabahStats.slice(0, 10).map((nasabah, index) => (
-                <tr key={nasabah.id} className="border-b hover:bg-slate-50 dark:hover:bg-slate-800">
+              {userStats.slice(0, 10).map((user, index) => (
+                <tr key={user.id} className="border-b hover:bg-slate-50 dark:hover:bg-slate-800">
                   <td className="px-4 py-3 text-sm font-semibold">{index + 1}</td>
-                  <td className="px-4 py-3 text-sm">{nasabah.nama}</td>
-                  <td className="px-4 py-3 text-sm">{nasabah.transactionCount}</td>
-                  <td className="px-4 py-3 text-sm">{nasabah.totalBerat.toFixed(2)}</td>
-                  <td className="px-4 py-3 text-sm text-green-600 font-semibold">{nasabah.totalPoint.toLocaleString()}</td>
-                  <td className="px-4 py-3 text-sm font-semibold">{nasabah.saldoPoint.toLocaleString()}</td>
+                  <td className="px-4 py-3 text-sm">{user.nama}</td>
+                  <td className="px-4 py-3 text-sm">{user.transactionCount}</td>
+                  <td className="px-4 py-3 text-sm">{user.totalBerat.toFixed(2)}</td>
+                  <td className="px-4 py-3 text-sm text-green-600 font-semibold">{user.totalPoint.toLocaleString()}</td>
+                  <td className="px-4 py-3 text-sm font-semibold">{user.saldoPoint.toLocaleString()}</td>
                 </tr>
               ))}
             </tbody>

@@ -5,8 +5,8 @@ import { nasabahList } from "@/data/nasabah";
 
 export default function WasteBankSummary() {
   // Calculate statistics
-  const totalNasabah = nasabahList.length;
-  const totalNasabahAktif = nasabahList.filter(n => n.status === "aktif").length;
+  const totalUser = nasabahList.length;
+  const totalUserAktif = nasabahList.filter(n => n.status === "aktif").length;
   const totalTransaksi = wasteTransactions.length;
   const totalSampahDiolah = wasteTransactions.reduce((total, t) => total + t.berat, 0);
   const totalPointDistribusi = wasteTransactions
@@ -24,28 +24,28 @@ export default function WasteBankSummary() {
   )[0];
 
   // Top customer
-  const nasabahTransactionCount = wasteTransactions.reduce((acc: Record<string, number>, t) => {
-    acc[t.nasabahId] = (acc[t.nasabahId] || 0) + 1;
+  const userTransactionCount = wasteTransactions.reduce((acc: Record<string, number>, t) => {
+    acc[t.userId] = (acc[t.userId] || 0) + 1;
     return acc;
   }, {});
 
-  const topNasabahId = Object.entries(nasabahTransactionCount).sort(
+  const topUserId = Object.entries(userTransactionCount).sort(
     (a, b) => b[1] - a[1]
   )[0]?.[0];
 
-  const topNasabah = nasabahList.find(n => n.id === topNasabahId);
+  const topUser = nasabahList.find(n => n.id === topUserId);
 
   return (
     <div className="rounded-lg border border-border bg-white p-6 shadow-sm dark:bg-slate-900">
       <h2 className="mb-6 text-xl font-semibold">Ringkasan Sistem</h2>
       
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {/* Nasabah Info */}
+        {/* User Info */}
         <div className="space-y-2">
-          <p className="text-sm text-muted-foreground">Total Nasabah</p>
-          <p className="text-3xl font-bold">{totalNasabah}</p>
+          <p className="text-sm text-muted-foreground">Total User</p>
+          <p className="text-3xl font-bold">{totalUser}</p>
           <p className="text-xs text-green-600">
-            ✓ {totalNasabahAktif} aktif
+            ✓ {totalUserAktif} aktif
           </p>
         </div>
 
@@ -89,10 +89,10 @@ export default function WasteBankSummary() {
 
         {/* Top Customer */}
         <div className="space-y-2">
-          <p className="text-sm text-muted-foreground">Nasabah Top</p>
-          <p className="text-lg font-bold">{topNasabah?.nama}</p>
+          <p className="text-sm text-muted-foreground">User Top</p>
+          <p className="text-lg font-bold">{topUser?.nama}</p>
           <p className="text-xs text-green-600">
-            Saldo: {topNasabah?.saldoPoint.toLocaleString("id-ID")} point
+            Saldo: {topUser?.saldoPoint.toLocaleString("id-ID")} point
           </p>
         </div>
       </div>

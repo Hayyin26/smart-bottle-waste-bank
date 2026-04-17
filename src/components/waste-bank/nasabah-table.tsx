@@ -1,12 +1,12 @@
 "use client";
 
-import { Nasabah } from "@/data/nasabah";
+import type { WasteUser } from "@/types/types";
 
-interface NasabahTableProps {
-  nasabahList: Nasabah[];
+interface UserTableProps {
+  userList: WasteUser[];
 }
 
-export default function NasabahTable({ nasabahList }: NasabahTableProps) {
+export default function UserTable({ userList }: UserTableProps) {
   const getStatusColor = (status: string) => {
     return status === "aktif" 
       ? "bg-green-100 text-green-800" 
@@ -22,30 +22,28 @@ export default function NasabahTable({ nasabahList }: NasabahTableProps) {
             <th className="px-4 py-3 text-left text-sm font-semibold">Nama</th>
             <th className="px-4 py-3 text-left text-sm font-semibold">Email</th>
             <th className="px-4 py-3 text-left text-sm font-semibold">No. HP</th>
-            <th className="px-4 py-3 text-left text-sm font-semibold">Kelurahan</th>
             <th className="px-4 py-3 text-left text-sm font-semibold">Saldo Point</th>
             <th className="px-4 py-3 text-left text-sm font-semibold">Total Transaksi</th>
             <th className="px-4 py-3 text-left text-sm font-semibold">Status</th>
           </tr>
         </thead>
         <tbody>
-          {nasabahList.map((nasabah, index) => (
+          {userList.map((user, index) => (
             <tr 
-              key={nasabah.id} 
+              key={user.id} 
               className="border-b hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
             >
               <td className="px-4 py-3 text-sm">{index + 1}</td>
-              <td className="px-4 py-3 text-sm font-medium">{nasabah.nama}</td>
-              <td className="px-4 py-3 text-sm text-muted-foreground">{nasabah.email}</td>
-              <td className="px-4 py-3 text-sm">{nasabah.nomorHp}</td>
-              <td className="px-4 py-3 text-sm">{nasabah.kelurahan}</td>
+              <td className="px-4 py-3 text-sm font-medium">{user.nama}</td>
+              <td className="px-4 py-3 text-sm text-muted-foreground">{user.email}</td>
+              <td className="px-4 py-3 text-sm">{user.nomorHp}</td>
               <td className="px-4 py-3 text-sm font-semibold text-green-600">
-                {nasabah.saldoPoint.toLocaleString()}
+                {user.saldoPoint.toLocaleString()}
               </td>
-              <td className="px-4 py-3 text-sm text-center">{nasabah.totalTransaksi}</td>
+              <td className="px-4 py-3 text-sm text-center">{user.totalTransaksi}</td>
               <td className="px-4 py-3 text-sm">
-                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(nasabah.status)}`}>
-                  {nasabah.status === "aktif" ? "Aktif" : "Nonaktif"}
+                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(user.status)}`}>
+                  {user.status === "aktif" ? "Aktif" : "Nonaktif"}
                 </span>
               </td>
             </tr>

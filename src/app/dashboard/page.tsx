@@ -8,7 +8,7 @@ import { nasabahList } from "@/data/nasabah";
 import { wasteTransactions } from "@/data/waste-transactions";
 
 export default function Home() {
-  const totalNasabah = nasabahList.length;
+  const totalUser = nasabahList.length;
   const totalTransaksi = wasteTransactions.length;
   const totalSampahDiolah = wasteTransactions.reduce((total, t) => total + t.berat, 0);
   const totalPointDistribusi = wasteTransactions
@@ -38,7 +38,7 @@ export default function Home() {
 
       <Container className="py-4">
         <WasteBankStats
-          totalNasabah={totalNasabah}
+          totalUser={totalUser}
           totalTransaksi={totalTransaksi}
           totalSampahDiolah={totalSampahDiolah}
           totalPointDistribusi={totalPointDistribusi}

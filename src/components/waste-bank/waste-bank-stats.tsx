@@ -3,14 +3,14 @@
 import { Trash2, Users, TrendingUp } from "lucide-react";
 
 interface WasteBankStatsProps {
-  totalNasabah: number;
+  totalUser: number;
   totalTransaksi: number;
   totalSampahDiolah: number; // dalam kg
   totalPointDistribusi: number;
 }
 
 export default function WasteBankStats({
-  totalNasabah,
+  totalUser,
   totalTransaksi,
   totalSampahDiolah,
   totalPointDistribusi,
@@ -19,7 +19,7 @@ export default function WasteBankStats({
     {
       icon: Users,
       label: "Total Nasabah",
-      value: totalNasabah,
+      value: totalUser,
       color: "bg-blue-100 text-blue-600",
     },
     {

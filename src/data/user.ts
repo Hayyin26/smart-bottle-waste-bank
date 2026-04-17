@@ -24,18 +24,18 @@ export const savedContacts = [
     id: "contact-001",
     name: "Ahmad Suryanto",
     accountNumber: "9876543210",
-    bank: "Smart Bank",
+    bank: "Smart Bottle Waste Bank",
   },
   {
     id: "contact-002",
     name: "Siti Nurhaliza",
     accountNumber: "5432109876",
-    bank: "Smart Bank",
+    bank: "Smart Bottle Waste Bank",
   },
   {
     id: "contact-003",
     name: "Budi Santoso",
     accountNumber: "1122334455",
-    bank: "Smart Bank",
+    bank: "Smart Bottle Waste Bank",
   },
 ];

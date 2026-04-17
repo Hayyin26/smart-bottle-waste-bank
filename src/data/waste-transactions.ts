@@ -1,7 +1,7 @@
 export type WasteTransaction = {
   id: string;
-  nasabahId: string;
-  nasabahNama: string;
+  userId: string;
+  userName: string;
   jenisAmpah: string;
   berat: number; // dalam kg
   satuan: string;
@@ -14,9 +14,9 @@ export type WasteTransaction = {
 export const wasteTransactions: WasteTransaction[] = [
   {
     id: "T001",
-    nasabahId: "N001",
-    nasabahNama: "Budi Santoso",
-    jenisAmpah: "Plastik PET",
+    userId: "U001",
+    userName: "Budi Santoso",
+    jenisAmpah: "Botol Plastik Kecil",
     berat: 2.5,
     satuan: "kg",
     nilaiTukar: 500,
@@ -26,9 +26,9 @@ export const wasteTransactions: WasteTransaction[] = [
   },
   {
     id: "T002",
-    nasabahId: "N002",
-    nasabahNama: "Siti Nurhaliza",
-    jenisAmpah: "Kertas",
+    userId: "U002",
+    userName: "Siti Nurhaliza",
+    jenisAmpah: "Botol Plastik Sedang",
     berat: 1.8,
     satuan: "kg",
     nilaiTukar: 360,
@@ -38,9 +38,9 @@ export const wasteTransactions: WasteTransaction[] = [
   },
   {
     id: "T003",
-    nasabahId: "N003",
-    nasabahNama: "Ahmad Hidayat",
-    jenisAmpah: "Aluminium",
+    userId: "U003",
+    userName: "Ahmad Hidayat",
+    jenisAmpah: "Botol Plastik Besar",
     berat: 0.5,
     satuan: "kg",
     nilaiTukar: 800,
@@ -50,9 +50,9 @@ export const wasteTransactions: WasteTransaction[] = [
   },
   {
     id: "T004",
-    nasabahId: "N004",
-    nasabahNama: "Eka Putri",
-    jenisAmpah: "Logam Besi",
+    userId: "U004",
+    userName: "Eka Putri",
+    jenisAmpah: "Botol Plastik Besar",
     berat: 3.2,
     satuan: "kg",
     nilaiTukar: 640,
@@ -62,9 +62,9 @@ export const wasteTransactions: WasteTransaction[] = [
   },
   {
     id: "T005",
-    nasabahId: "N001",
-    nasabahNama: "Budi Santoso",
-    jenisAmpah: "Botol Kaca",
+    userId: "U001",
+    userName: "Budi Santoso",
+    jenisAmpah: "Botol Plastik Sedang",
     berat: 1.2,
     satuan: "kg",
     nilaiTukar: 240,
@@ -74,9 +74,9 @@ export const wasteTransactions: WasteTransaction[] = [
   },
   {
     id: "T006",
-    nasabahId: "N005",
-    nasabahNama: "Roni Wijaya",
-    jenisAmpah: "Plastik Lainnya",
+    userId: "U005",
+    userName: "Roni Wijaya",
+    jenisAmpah: "Botol Plastik Kecil",
     berat: 0.8,
     satuan: "kg",
     nilaiTukar: 160,
@@ -86,9 +86,9 @@ export const wasteTransactions: WasteTransaction[] = [
   },
   {
     id: "T007",
-    nasabahId: "N002",
-    nasabahNama: "Siti Nurhaliza",
-    jenisAmpah: "Kertas Kardus",
+    userId: "U002",
+    userName: "Siti Nurhaliza",
+    jenisAmpah: "Botol Plastik Besar",
     berat: 2.0,
     satuan: "kg",
     nilaiTukar: 400,
@@ -98,9 +98,9 @@ export const wasteTransactions: WasteTransaction[] = [
   },
   {
     id: "T008",
-    nasabahId: "N003",
-    nasabahNama: "Ahmad Hidayat",
-    jenisAmpah: "Plastik PET",
+    userId: "U003",
+    userName: "Ahmad Hidayat",
+    jenisAmpah: "Botol Plastik Kecil",
     berat: 1.5,
     satuan: "kg",
     nilaiTukar: 300,
@@ -121,51 +121,23 @@ export type WasteType = {
 export const wasteTypes: WasteType[] = [
   {
     id: "W001",
-    nama: "Plastik PET",
+    nama: "Botol Plastik Kecil",
     hargaPerKg: 200,
     icon: "🔵",
     warna: "bg-blue-100",
   },
   {
     id: "W002",
-    nama: "Kertas",
+    nama: "Botol Plastik Sedang",
     hargaPerKg: 200,
-    icon: "📄",
-    warna: "bg-yellow-100",
+    icon: "🟦",
+    warna: "bg-blue-200",
   },
   {
     id: "W003",
-    nama: "Aluminium",
+    nama: "Botol Plastik Besar",
     hargaPerKg: 1600,
-    icon: "💎",
-    warna: "bg-gray-100",
-  },
-  {
-    id: "W004",
-    nama: "Logam Besi",
-    hargaPerKg: 200,
-    icon: "⚙️",
-    warna: "bg-slate-100",
-  },
-  {
-    id: "W005",
-    nama: "Botol Kaca",
-    hargaPerKg: 200,
-    icon: "🍾",
-    warna: "bg-green-100",
-  },
-  {
-    id: "W006",
-    nama: "Plastik Lainnya",
-    hargaPerKg: 200,
-    icon: "🔴",
-    warna: "bg-red-100",
-  },
-  {
-    id: "W007",
-    nama: "Kertas Kardus",
-    hargaPerKg: 200,
-    icon: "📦",
-    warna: "bg-orange-100",
+    icon: "🟦",
+    warna: "bg-blue-300",
   },
 ];

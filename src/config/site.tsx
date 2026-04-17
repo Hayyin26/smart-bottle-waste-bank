@@ -8,7 +8,7 @@ export type Navigation = {
 };
 
 export const siteConfig = {
-  title: "Bank Sampah Digital",
+  title: "Smart Bottle Waste Bank",
   description: "Sistem Manajemen Bank Sampah Digital",
 };
 
@@ -25,7 +25,7 @@ export const navigations: Navigation[] = [
   },
   {
     icon: Users,
-    name: "Nasabah",
+    name: "User",
     href: "/nasabah",
   },
   {

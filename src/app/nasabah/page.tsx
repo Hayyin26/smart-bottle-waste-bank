@@ -1,33 +1,33 @@
 "use client";
 
 import Container from "@/components/container";
-import NasabahTable from "@/components/waste-bank/nasabah-table";
-import { nasabahList } from "@/data/nasabah";
+import UserTable from "@/components/waste-bank/nasabah-table";
+import { nasabahList as userList } from "@/data/nasabah";
 import { useState } from "react";
 import { Plus, Search, Filter } from "lucide-react";
 
-export default function NasabahPage() {
+export default function UserPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<"semua" | "aktif" | "nonaktif">("semua");
 
-  const filteredNasabah = nasabahList.filter((nasabah) => {
+  const filteredUser = userList.filter((user) => {
     const matchesSearch =
-      nasabah.nama.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      nasabah.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      nasabah.nomorHp.includes(searchTerm);
+      user.nama.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.nomorHp.includes(searchTerm);
 
     const matchesFilter =
-      filterStatus === "semua" || nasabah.status === filterStatus;
+      filterStatus === "semua" || user.status === filterStatus;
 
     return matchesSearch && matchesFilter;
   });
 
   const stats = {
-    total: nasabahList.length,
-    aktif: nasabahList.filter(n => n.status === "aktif").length,
-    nonaktif: nasabahList.filter(n => n.status === "nonaktif").length,
-    totalSaldo: nasabahList.reduce((total, n) => total + n.saldoPoint, 0),
-    totalTransaksi: nasabahList.reduce((total, n) => total + n.totalTransaksi, 0),
+    total: userList.length,
+    aktif: userList.filter(n => n.status === "aktif").length,
+    nonaktif: userList.filter(n => n.status === "nonaktif").length,
+    totalSaldo: userList.reduce((total, n) => total + n.saldoPoint, 0),
+    totalTransaksi: userList.reduce((total, n) => total + n.totalTransaksi, 0),
   };
 
   return (
@@ -35,14 +35,14 @@ export default function NasabahPage() {
       <Container className="py-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold">Manajemen Nasabah</h1>
+            <h1 className="text-3xl font-bold">Manajemen User</h1>
             <p className="text-muted-foreground">
-              Total {stats.total} nasabah terdaftar
+              Total {stats.total} user terdaftar
             </p>
           </div>
           <button className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 transition-colors">
             <Plus size={20} />
-            Tambah Nasabah
+            Tambah User
           </button>
         </div>
       </Container>
@@ -51,7 +51,7 @@ export default function NasabahPage() {
       <Container className="py-4">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
           <div className="rounded-lg border border-border bg-white p-4 dark:bg-slate-900">
-            <p className="text-sm text-muted-foreground">Total Nasabah</p>
+            <p className="text-sm text-muted-foreground">Total User</p>
             <p className="mt-2 text-2xl font-bold">{stats.total}</p>
           </div>
           <div className="rounded-lg border border-border bg-white p-4 dark:bg-slate-900">
@@ -116,13 +116,13 @@ export default function NasabahPage() {
       {/* Results Count */}
       <Container className="py-0">
         <p className="text-sm text-muted-foreground">
-          Menampilkan {filteredNasabah.length} dari {nasabahList.length} nasabah
+          Menampilkan {filteredUser.length} dari {userList.length} user
         </p>
       </Container>
 
       {/* Table */}
       <Container className="py-4">
-        <NasabahTable nasabahList={filteredNasabah} />
+        <UserTable userList={filteredUser} />
       </Container>
     </div>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import { WasteTransaction } from "@/data/waste-transactions";
+import type { WasteTransaction } from "@/data/waste-transactions";
 
 interface TransactionTableProps {
   transactions: WasteTransaction[];
@@ -13,8 +13,7 @@ export default function TransactionTable({ transactions }: TransactionTableProps
       pending: { bg: "bg-yellow-100", text: "text-yellow-800", label: "Pending" },
       dibatalkan: { bg: "bg-red-100", text: "text-red-800", label: "Dibatalkan" },
     };
-    const badge = statusMap[status] || statusMap.pending;
-    return badge;
+    return statusMap[status] || statusMap.pending;
   };
 
   return (
@@ -23,7 +22,7 @@ export default function TransactionTable({ transactions }: TransactionTableProps
         <thead>
           <tr className="border-b bg-slate-50 dark:bg-slate-800">
             <th className="px-4 py-3 text-left text-sm font-semibold">ID</th>
-            <th className="px-4 py-3 text-left text-sm font-semibold">Nasabah</th>
+            <th className="px-4 py-3 text-left text-sm font-semibold">User</th>
             <th className="px-4 py-3 text-left text-sm font-semibold">Jenis Sampah</th>
             <th className="px-4 py-3 text-left text-sm font-semibold">Berat (kg)</th>
             <th className="px-4 py-3 text-left text-sm font-semibold">Nilai Tukar (Point)</th>
@@ -41,7 +40,7 @@ export default function TransactionTable({ transactions }: TransactionTableProps
                 className="border-b hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
               >
                 <td className="px-4 py-3 text-sm font-medium">{transaction.id}</td>
-                <td className="px-4 py-3 text-sm">{transaction.nasabahNama}</td>
+                <td className="px-4 py-3 text-sm">{transaction.userName}</td>
                 <td className="px-4 py-3 text-sm">{transaction.jenisAmpah}</td>
                 <td className="px-4 py-3 text-sm font-semibold">{transaction.berat}</td>
                 <td className="px-4 py-3 text-sm text-green-600 font-semibold">

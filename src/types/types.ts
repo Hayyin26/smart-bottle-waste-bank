@@ -29,6 +29,19 @@ export type User = {
   kycStatus: "Verified" | "Pending" | "Rejected";
 };
 
+export type WasteUser = {
+  id: string;
+  nama: string;
+  email: string;
+  nomorHp: string;
+  alamat: string;
+  kecamatan: string;
+  saldoPoint: number;
+  totalTransaksi: number;
+  terdaftar: string;
+  status: "aktif" | "nonaktif";
+};
+
 export type Transaction = {
   id: string;
   fromAccount: string;
