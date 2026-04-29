@@ -2,10 +2,42 @@
 
 import Container from "@/components/container";
 import { BarChart3, TrendingUp, Trash2, Users } from "lucide-react";
-import { wasteTransactions } from "@/data/waste-transactions";
-import { nasabahList } from "@/data/nasabah";
+import { getNasabahList } from "@/services/nasabah.service";
+import { getTransaksiList } from "@/services/transaksi.service";
+import { useState, useEffect } from "react";
+import type { WasteUser } from "@/types/types";
+import type { WasteTransaction } from "@/data/waste-transactions";
 
 export default function LaporanPage() {
+  const [nasabahList, setNasabahList] = useState<WasteUser[]>([]);
+  const [wasteTransactions, setWasteTransactions] = useState<WasteTransaction[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchData() {
+      setLoading(true);
+      const [users, transactions] = await Promise.all([
+        getNasabahList(),
+        getTransaksiList(),
+      ]);
+      setNasabahList(users);
+      setWasteTransactions(transactions);
+      setLoading(false);
+    }
+    fetchData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Memuat data...</p>
+        </div>
+      </div>
+    );
+  }
+
   // Calculate statistics
   const totalUser = nasabahList.length;
   const totalUserAktif = nasabahList.filter(n => n.status === "aktif").length;

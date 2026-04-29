@@ -2,12 +2,25 @@
 
 import Container from "@/components/container";
 import TransactionTable from "@/components/waste-bank/transaction-table";
-import { wasteTransactions } from "@/data/waste-transactions";
-import { useState } from "react";
+import { getTransaksiList } from "@/services/transaksi.service";
+import { useState, useEffect } from "react";
 import { Plus, Filter } from "lucide-react";
+import type { WasteTransaction } from "@/data/waste-transactions";
 
 export default function TransaksiPage() {
+  const [wasteTransactions, setWasteTransactions] = useState<WasteTransaction[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<"semua" | "selesai" | "pending" | "dibatalkan">("semua");
+
+  useEffect(() => {
+    async function fetchData() {
+      setLoading(true);
+      const data = await getTransaksiList();
+      setWasteTransactions(data);
+      setLoading(false);
+    }
+    fetchData();
+  }, []);
 
   const filteredTransactions = 
     filterStatus === "semua"
@@ -25,6 +38,17 @@ export default function TransaksiPage() {
     totalBerat: wasteTransactions.reduce((total, t) => total + t.berat, 0),
   };
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Memuat data...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <Container className="py-4">
@@ -35,10 +59,6 @@ export default function TransaksiPage() {
               Total {stats.total} transaksi sampah tercatat
             </p>
           </div>
-          <button className="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-white hover:bg-green-700 transition-colors">
-            <Plus size={20} />
-            Tambah Transaksi
-          </button>
         </div>
       </Container>
 

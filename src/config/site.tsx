@@ -1,4 +1,4 @@
-import { Gauge, type LucideIcon, Trash2, Users, BarChart3, Settings } from "lucide-react";
+import { Gauge, type LucideIcon, Trash2, Users, BarChart3, Settings, QrCode, History } from "lucide-react";
 
 export type SiteConfig = typeof siteConfig;
 export type Navigation = {
@@ -8,25 +8,35 @@ export type Navigation = {
 };
 
 export const siteConfig = {
-  title: "Smart Bottle Waste Bank",
-  description: "Sistem Manajemen Bank Sampah Digital",
+  title: "IoT QR System - Bank Sampah",
+  description: "Sistem Manajemen Bank Sampah dengan IoT QR Code",
 };
 
 export const navigations: Navigation[] = [
   {
     icon: Gauge,
     name: "Dashboard",
-    href: "/",
+    href: "/dashboard",
+  },
+  {
+    icon: History,
+    name: "History",
+    href: "/history",
+  },
+  {
+    icon: QrCode,
+    name: "QR Generator",
+    href: "/qr-generator",
+  },
+  {
+    icon: Users,
+    name: "Users",
+    href: "/nasabah",
   },
   {
     icon: Trash2,
     name: "Transaksi",
     href: "/transaksi",
-  },
-  {
-    icon: Users,
-    name: "User",
-    href: "/nasabah",
   },
   {
     icon: BarChart3,

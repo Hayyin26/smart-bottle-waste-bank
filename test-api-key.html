@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Supabase API Key</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        .result {
+            background: #2a2a2a;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .success { color: #4ade80; }
+        .error { color: #f87171; }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover { background: #2563eb; }
+        pre {
+            background: #000;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔑 Test Supabase API Key</h1>
+    
+    <div class="result">
+        <h3>Configuration:</h3>
+        <pre id="config"></pre>
+    </div>
+
+    <button onclick="testConnection()">🧪 Test Connection</button>
+
+    <div class="result" id="result" style="display:none;">
+        <h3>Result:</h3>
+        <div id="status"></div>
+        <pre id="response"></pre>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://dsdtxqpzofrvzxpyktoo.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRzZHR4cXB6b2Zydnp4cHlrdG9vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzcyODUxODAsImV4cCI6MjA5Mjg2MTE4MH0.lX5Y9VvXpDhL2dkem4uRLDFL36CPmAGGCo7c3MxOeVk';
+
+        document.getElementById('config').textContent = JSON.stringify({
+            url: SUPABASE_URL,
+            keyLength: SUPABASE_KEY.length,
+            keyStart: SUPABASE_KEY.substring(0, 20) + '...',
+            keyEnd: '...' + SUPABASE_KEY.substring(SUPABASE_KEY.length - 20)
+        }, null, 2);
+
+        async function testConnection() {
+            const resultDiv = document.getElementById('result');
+            const statusDiv = document.getElementById('status');
+            const responseDiv = document.getElementById('response');
+            
+            resultDiv.style.display = 'block';
+            statusDiv.innerHTML = '<p>⏳ Testing...</p>';
+            responseDiv.textContent = '';
+
+            try {
+                // Test 1: Fetch profiles count
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/profiles?select=count`, {
+                    method: 'GET',
+                    headers: {
+                        'apikey': SUPABASE_KEY,
+                        'Authorization': `Bearer ${SUPABASE_KEY}`,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'count=exact'
+                    }
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    statusDiv.innerHTML = '<p class="success">✅ SUCCESS!</p>';
+                    responseDiv.textContent = JSON.stringify({
+                        status: response.status,
+                        statusText: response.statusText,
+                        data: data,
+                        headers: {
+                            'content-range': response.headers.get('content-range')
+                        }
+                    }, null, 2);
+                } else {
+                    statusDiv.innerHTML = '<p class="error">❌ FAILED</p>';
+                    responseDiv.textContent = JSON.stringify({
+                        status: response.status,
+                        statusText: response.statusText,
+                        error: data
+                    }, null, 2);
+                }
+            } catch (error) {
+                statusDiv.innerHTML = '<p class="error">❌ ERROR</p>';
+                responseDiv.textContent = JSON.stringify({
+                    error: error.message,
+                    stack: error.stack
+                }, null, 2);
+            }
+        }
+    </script>
+</body>
+</html>

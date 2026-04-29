@@ -2,13 +2,26 @@
 
 import Container from "@/components/container";
 import UserTable from "@/components/waste-bank/nasabah-table";
-import { nasabahList as userList } from "@/data/nasabah";
-import { useState } from "react";
+import { getNasabahList } from "@/services/nasabah.service";
+import { useState, useEffect } from "react";
 import { Plus, Search, Filter } from "lucide-react";
+import type { WasteUser } from "@/types/types";
 
 export default function UserPage() {
+  const [userList, setUserList] = useState<WasteUser[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<"semua" | "aktif" | "nonaktif">("semua");
+
+  useEffect(() => {
+    async function fetchData() {
+      setLoading(true);
+      const data = await getNasabahList();
+      setUserList(data);
+      setLoading(false);
+    }
+    fetchData();
+  }, []);
 
   const filteredUser = userList.filter((user) => {
     const matchesSearch =
@@ -30,6 +43,17 @@ export default function UserPage() {
     totalTransaksi: userList.reduce((total, n) => total + n.totalTransaksi, 0),
   };
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Memuat data...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <Container className="py-4">
@@ -40,10 +64,6 @@ export default function UserPage() {
               Total {stats.total} user terdaftar
             </p>
           </div>
-          <button className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 transition-colors">
-            <Plus size={20} />
-            Tambah User
-          </button>
         </div>
       </Container>
 
