@@ -67,4 +67,16 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  body:has([data-auth-page="true"]) [data-side-nav-shell] {
+    display: none;
+  }
+
+  body:has([data-auth-page="true"]) [data-app-frame] {
+    display: block;
+  }
+
+  body:has([data-auth-page="true"]) [data-app-content] {
+    overflow: visible;
+  }
 }
