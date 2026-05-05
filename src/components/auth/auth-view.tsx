@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
   ArrowRight,
@@ -15,6 +16,13 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import {
+  signInWithEmail,
+  signUpWithEmail,
+  signInWithGoogle,
+  signInWithGitHub,
+} from "@/lib/auth";
+import { supabase } from "@/lib/supabase";
 
 type AuthMode = "login" | "register";
 
@@ -45,7 +53,7 @@ const authCopy = {
     helperLink: "/register",
     helperLinkLabel: "Daftar di sini",
     successMessage:
-      "Form login sudah siap. Sambungkan submit handler ini ke Supabase Auth saat integrasi backend dilakukan.",
+      "Anda berhasil login! Sedang mengarahkan ke dashboard...",
   },
   register: {
     badge: "Register akun",
@@ -57,7 +65,7 @@ const authCopy = {
     helperLink: "/login",
     helperLinkLabel: "Masuk di sini",
     successMessage:
-      "Form register sudah siap. Sambungkan proses pendaftaran ini ke Supabase Auth pada tahap integrasi berikutnya.",
+      "Akun berhasil dibuat! Sedang mengarahkan ke login...",
   },
 } satisfies Record<
   AuthMode,
@@ -137,6 +145,7 @@ function AuthInput({
 }
 
 export function AuthView({ mode }: { mode: AuthMode }) {
+  const router = useRouter();
   const copy = authCopy[mode];
   const [values, setValues] = useState<FormValues>({
     fullName: "",
@@ -196,20 +205,94 @@ export function AuthView({ mode }: { mode: AuthMode }) {
     }
 
     setIsSubmitting(true);
-    await new Promise((resolve) => window.setTimeout(resolve, 500));
-    setFeedback({ type: "success", message: copy.successMessage });
-    setIsSubmitting(false);
+    setFeedback(null);
+
+    try {
+      if (mode === "login") {
+        await signInWithEmail(values.email, values.password);
+        
+        // Sinkronisasi profile setelah login
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          const user = session.user;
+          
+          // Update profil untuk memastikan data terbaru
+          await supabase
+            .from('profiles')
+            .update({
+              full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', user.id)
+            .select()
+            .single();
+        }
+      } else {
+        // Register mode - check if email already exists
+        await supabase.auth.signInWithPassword({
+          email: values.email,
+          password: 'dummy', // This will fail but helps check if email exists
+        }).catch(() => ({ data: null }));
+
+        // If we got here without error in actual flow, email might exist
+        // But we'll let Supabase handle the actual duplicate check
+        await signUpWithEmail(values.email, values.password, values.fullName);
+      }
+
+      setFeedback({ type: "success", message: copy.successMessage });
+      
+      // Redirect setelah 1 detik
+      setTimeout(() => {
+        router.push(process.env.NEXT_PUBLIC_REDIRECT_URL || "/dashboard");
+      }, 1000);
+    } catch (error) {
+      let errorMessage = error instanceof Error ? error.message : "Terjadi kesalahan";
+      
+      // Improve error messages
+      if (errorMessage.includes('User already registered')) {
+        errorMessage = 'Email ini sudah terdaftar. Silakan gunakan email lain atau coba login.';
+      } else if (errorMessage.includes('Invalid login credentials')) {
+        errorMessage = 'Email atau password salah.';
+      } else if (errorMessage.includes('Email not confirmed')) {
+        errorMessage = 'Email belum dikonfirmasi. Silakan cek email Anda.';
+      } else if (errorMessage.includes('Password should be at least')) {
+        errorMessage = 'Password minimal harus 8 karakter.';
+      }
+      
+      setFeedback({
+        type: "info",
+        message: errorMessage,
+      });
+      setIsSubmitting(false);
+    }
   };
 
   const handleProviderClick = async (provider: "Google" | "GitHub") => {
     setFeedback(null);
     setIsSubmitting(true);
-    await new Promise((resolve) => window.setTimeout(resolve, 350));
-    setFeedback({
-      type: "info",
-      message: `Tombol login ${provider} sudah disiapkan. Sambungkan handler OAuth ${provider} saat integrasi auth dilakukan.`,
-    });
-    setIsSubmitting(false);
+
+    try {
+      if (provider === "Google") {
+        await signInWithGoogle();
+      } else if (provider === "GitHub") {
+        await signInWithGitHub();
+      }
+    } catch (error) {
+      let errorMessage = error instanceof Error ? error.message : `Login dengan ${provider} gagal`;
+      
+      // Improve error messages untuk OAuth
+      if (errorMessage.includes('PKCE')) {
+        errorMessage = `Login dengan ${provider} tidak dapat diproses. Silakan coba lagi.`;
+      } else if (errorMessage.includes('redirect')) {
+        errorMessage = `Gagal mengarahkan ke ${provider}. Silakan coba lagi.`;
+      }
+      
+      setFeedback({
+        type: "info",
+        message: errorMessage,
+      });
+      setIsSubmitting(false);
+    }
   };
 
   return (
