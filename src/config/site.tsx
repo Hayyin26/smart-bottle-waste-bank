@@ -29,6 +29,11 @@ export const navigations: Navigation[] = [
     href: "/qr-generator",
   },
   {
+    icon: QrCode,
+    name: "Device QR",
+    href: "/device-qr",
+  },
+  {
     icon: Users,
     name: "Users",
     href: "/nasabah",
