@@ -29,12 +29,30 @@ export default function Home() {
 
   async function fetchStats() {
     setLoading(true);
-    const [users, transactions, points, devices] = await Promise.all([
+    const [usersResult, transactionsResult, pointsResult, devicesResult] = await Promise.allSettled([
       getTotalUsers(),
       getTotalTransactions(),
       getTotalPointsDistributed(),
       getTotalDevices(),
     ]);
+
+    const users = usersResult.status === 'fulfilled' ? usersResult.value : 0;
+    const transactions = transactionsResult.status === 'fulfilled' ? transactionsResult.value : 0;
+    const points = pointsResult.status === 'fulfilled' ? pointsResult.value : 0;
+    const devices = devicesResult.status === 'fulfilled' ? devicesResult.value : 0;
+
+    if (usersResult.status === 'rejected') {
+      console.error('Failed to fetch total users:', usersResult.reason);
+    }
+    if (transactionsResult.status === 'rejected') {
+      console.error('Failed to fetch total transactions:', transactionsResult.reason);
+    }
+    if (pointsResult.status === 'rejected') {
+      console.error('Failed to fetch total points:', pointsResult.reason);
+    }
+    if (devicesResult.status === 'rejected') {
+      console.error('Failed to fetch total devices:', devicesResult.reason);
+    }
     
     setStats({
       totalUsers: users,
