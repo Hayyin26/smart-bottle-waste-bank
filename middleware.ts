@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from 'next/server';
 
 export async function middleware(request: NextRequest) {
   // Routes yang butuh login
-  const protectedRoutes = ['/dashboard', '/history', '/laporan', '/nasabah', '/transaksi'];
+  const protectedRoutes = ['/dashboard', '/history', '/laporan', '/nasabah', '/transaksi', '/profile'];
   const isProtectedRoute = protectedRoutes.some(route => 
     request.nextUrl.pathname.startsWith(route)
   );

@@ -43,8 +43,6 @@ export default function ProfilePage() {
             alamat: userProfile.alamat || "",
             kecamatan: userProfile.kecamatan || "",
           });
-        } else {
-          router.push("/login");
         }
       } catch {
         // ignore error
@@ -55,7 +53,7 @@ export default function ProfilePage() {
     };
 
     fetchProfile();
-  }, [router]);
+  }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;

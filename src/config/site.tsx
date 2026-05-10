@@ -1,4 +1,4 @@
-import { Gauge, type LucideIcon, Trash2, Users, BarChart3, Settings, History } from "lucide-react";
+import { Gauge, type LucideIcon, Trash2, Users, BarChart3, Settings, History, QrCode } from "lucide-react";
 
 export type SiteConfig = typeof siteConfig;
 export type Navigation = {
@@ -22,6 +22,11 @@ export const navigations: Navigation[] = [
     icon: History,
     name: "History",
     href: "/history",
+  },
+  {
+    icon: QrCode,
+    name: "Device QR",
+    href: "/device-qr",
   },
   {
     icon: Users,
