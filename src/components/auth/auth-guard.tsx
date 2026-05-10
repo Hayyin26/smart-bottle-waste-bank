@@ -81,10 +81,10 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     };
   }, [pathname, isProtectedRoute, isPublicAuthRoute, router]);
 
-  // Show loading saat checking auth
-  if (isLoading && isProtectedRoute) {
+  // Show loading saat checking auth (jangan render apapun)
+  if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="text-center">
           <div className="mb-4 inline-block h-8 w-8 animate-spin rounded-full border-4 border-emerald-200 border-t-emerald-600"></div>
           <p className="text-slate-600">Memeriksa otorisasi...</p>
@@ -93,5 +93,18 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
+  // Jika protected route dan tidak authenticated, tampilkan loading
+  if (isProtectedRoute && !isAuthenticated) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="mb-4 inline-block h-8 w-8 animate-spin rounded-full border-4 border-emerald-200 border-t-emerald-600"></div>
+          <p className="text-slate-600">Redirecting...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Render children hanya jika auth check selesai dan authenticated
   return children;
 }

@@ -7,32 +7,34 @@ export async function middleware(request: NextRequest) {
     request.nextUrl.pathname.startsWith(route)
   );
 
-  // Cek session dari cookies Supabase
-  const authToken = request.cookies.get('sb-auth-token')?.value || 
-                    request.cookies.get('sb-' + process.env.NEXT_PUBLIC_SUPABASE_URL?.split('//')[1]?.split('.')[0] + '-auth-token')?.value;
-
-  // Cara lain: cek dengan fetch ke Supabase untuk validasi session
-  let hasSession = false;
-
-  if (authToken) {
-    hasSession = true;
-  } else {
-    // Alternative: cek cookies supabase yang lebih spesifik
-    const cookies = request.cookies.getAll();
-    hasSession = cookies.some(cookie => 
-      cookie.name.includes('supabase') || 
-      cookie.name.includes('auth') ||
-      cookie.name.includes('session')
-    );
+  // Cek session dari cookies Supabase dengan lebih ketat
+  const cookies = request.cookies.getAll();
+  
+  // Cari cookie auth yang spesifik (bukan keyword umum)
+  let hasValidAuthCookie = false;
+  
+  for (const cookie of cookies) {
+    // Check untuk standard Supabase auth tokens
+    if (cookie.name.includes('auth-token') || 
+        cookie.name === 'sb-auth-token' ||
+        cookie.name.includes('sb-') && cookie.name.includes('-auth-token') ||
+        cookie.name === 'supabase-auth' ||
+        (cookie.name.startsWith('sb-') && cookie.value && cookie.value.length > 20)) {
+      // Verify cookie punya value
+      if (cookie.value && cookie.value.trim().length > 0) {
+        hasValidAuthCookie = true;
+        break;
+      }
+    }
   }
 
-  // Jika akses route yang dilindungi tanpa session, redirect ke /login
-  if (isProtectedRoute && !hasSession) {
+  // Jika akses route yang dilindungi tanpa valid auth cookie, redirect ke /login
+  if (isProtectedRoute && !hasValidAuthCookie) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  // Jika sudah login dan mengakses /login atau /register, redirect ke dashboard
-  if ((request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/register') && hasSession) {
+  // Jika sudah ada auth cookie dan akses /login atau /register, redirect ke dashboard
+  if ((request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/register') && hasValidAuthCookie) {
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
