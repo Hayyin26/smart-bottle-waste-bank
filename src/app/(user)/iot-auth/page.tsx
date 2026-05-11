@@ -114,6 +114,23 @@ export default function IotAuthPage() {
       if (error) throw error;
 
       if (data.user) {
+        // Check if user has 'user' role
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', data.user.id)
+          .single();
+
+        if (profileError || !profile) {
+          throw new Error('Tidak dapat mengakses profil pengguna');
+        }
+
+        if (profile.role !== 'user') {
+          // Wrong role - logout
+          await supabase.auth.signOut();
+          throw new Error('Akun Anda bukan user biasa. Silakan gunakan akun user untuk login di sini.');
+        }
+
         await saveIotSession(data.user.id);
       }
     } catch (err: any) {

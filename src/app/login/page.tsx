@@ -6,5 +6,5 @@ export const metadata: Metadata = {
 };
 
 export default function LoginPage() {
-  return <AuthView mode="login" />;
+  return <AuthView mode="login" requiredRole="admin" />;
 }
