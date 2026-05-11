@@ -22,7 +22,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   );
 
   // Routes yang hanya bisa diakses kalau belum login
-  const publicAuthRoutes = ["/login", "/register"];
+  const publicAuthRoutes = ["/login"];
   const isPublicAuthRoute = publicAuthRoutes.includes(pathname);
 
   useEffect(() => {

@@ -1,36 +1,26 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
   ArrowRight,
   Eye,
   EyeOff,
-  Github,
   Leaf,
   LockKeyhole,
   Mail,
   ShieldCheck,
-  UserRound,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import {
-  signInWithEmail,
-  signUpWithEmail,
-  signInWithGoogle,
-  signInWithGitHub,
-} from "@/lib/auth";
+import { signInWithEmail } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 
-type AuthMode = "login" | "register";
+type AuthMode = "login";
 
 type FormValues = {
-  fullName: string;
   email: string;
   password: string;
-  confirmPassword: string;
 };
 
 type FormErrors = Partial<Record<keyof FormValues, string>>;
@@ -49,23 +39,8 @@ const authCopy = {
     description:
       "Gunakan akun Anda untuk mengakses dashboard, riwayat transaksi, dan data bank sampah.",
     submitLabel: "Masuk",
-    helperText: "Belum punya akun?",
-    helperLink: "/register",
-    helperLinkLabel: "Daftar di sini",
     successMessage:
       "Anda berhasil login! Sedang mengarahkan ke dashboard...",
-  },
-  register: {
-    badge: "Register akun",
-    title: "Buat akun baru",
-    description:
-      "Daftarkan akun Anda terlebih dulu, lalu nanti bisa dilanjutkan ke integrasi autentikasi Supabase.",
-    submitLabel: "Buat akun",
-    helperText: "Sudah punya akun?",
-    helperLink: "/login",
-    helperLinkLabel: "Masuk di sini",
-    successMessage:
-      "Akun berhasil dibuat! Sedang mengarahkan ke login...",
   },
 } satisfies Record<
   AuthMode,
@@ -74,41 +49,9 @@ const authCopy = {
     title: string;
     description: string;
     submitLabel: string;
-    helperText: string;
-    helperLink: string;
-    helperLinkLabel: string;
     successMessage: string;
   }
 >;
-
-function GoogleIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      aria-hidden="true"
-      className={className}
-      viewBox="0 0 24 24"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <path
-        d="M21.805 12.23c0-.765-.068-1.5-.195-2.208H12v4.177h5.494a4.699 4.699 0 0 1-2.038 3.084v2.562h3.306c1.935-1.783 3.043-4.41 3.043-7.615Z"
-        fill="#4285F4"
-      />
-      <path
-        d="M12 22c2.76 0 5.074-.915 6.762-2.477l-3.306-2.562c-.915.615-2.085.982-3.456.982-2.655 0-4.904-1.793-5.707-4.2H2.876v2.645A9.998 9.998 0 0 0 12 22Z"
-        fill="#34A853"
-      />
-      <path
-        d="M6.293 13.743A5.998 5.998 0 0 1 5.974 12c0-.605.11-1.192.319-1.743V7.612H2.876A9.997 9.997 0 0 0 2 12c0 1.61.385 3.135 1.066 4.388l3.227-2.645Z"
-        fill="#FBBC04"
-      />
-      <path
-        d="M12 6.057c1.5 0 2.846.515 3.908 1.525l2.928-2.928C17.069 3.02 14.756 2 12 2a9.998 9.998 0 0 0-9.124 5.612l3.417 2.645c.803-2.407 3.052-4.2 5.707-4.2Z"
-        fill="#EA4335"
-      />
-    </svg>
-  );
-}
 
 function AuthInput({
   className,
@@ -148,16 +91,13 @@ export function AuthView({ mode }: { mode: AuthMode }) {
   const router = useRouter();
   const copy = authCopy[mode];
   const [values, setValues] = useState<FormValues>({
-    fullName: "",
     email: "",
     password: "",
-    confirmPassword: "",
   });
   const [errors, setErrors] = useState<FormErrors>({});
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [passwordVisible, setPasswordVisible] = useState(false);
-  const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
 
   const updateValue =
     (field: keyof FormValues) => (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -169,10 +109,6 @@ export function AuthView({ mode }: { mode: AuthMode }) {
   const validateForm = () => {
     const nextErrors: FormErrors = {};
 
-    if (mode === "register" && !values.fullName.trim()) {
-      nextErrors.fullName = "Nama lengkap wajib diisi.";
-    }
-
     if (!values.email.trim()) {
       nextErrors.email = "Email wajib diisi.";
     } else if (!emailPattern.test(values.email)) {
@@ -181,16 +117,6 @@ export function AuthView({ mode }: { mode: AuthMode }) {
 
     if (!values.password) {
       nextErrors.password = "Password wajib diisi.";
-    } else if (mode === "register" && values.password.length < 8) {
-      nextErrors.password = "Password minimal 8 karakter.";
-    }
-
-    if (mode === "register") {
-      if (!values.confirmPassword) {
-        nextErrors.confirmPassword = "Konfirmasi password wajib diisi.";
-      } else if (values.confirmPassword !== values.password) {
-        nextErrors.confirmPassword = "Konfirmasi password belum sama.";
-      }
     }
 
     setErrors(nextErrors);
@@ -208,35 +134,23 @@ export function AuthView({ mode }: { mode: AuthMode }) {
     setFeedback(null);
 
     try {
-      if (mode === "login") {
-        await signInWithEmail(values.email, values.password);
+      await signInWithEmail(values.email, values.password);
+      
+      // Sinkronisasi profile setelah login
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        const user = session.user;
         
-        // Sinkronisasi profile setelah login
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-          const user = session.user;
-          
-          // Update profil untuk memastikan data terbaru
-          await supabase
-            .from('profiles')
-            .update({
-              full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
-              updated_at: new Date().toISOString(),
-            })
-            .eq('id', user.id)
-            .select()
-            .single();
-        }
-      } else {
-        // Register mode - check if email already exists
-        await supabase.auth.signInWithPassword({
-          email: values.email,
-          password: 'dummy', // This will fail but helps check if email exists
-        }).catch(() => ({ data: null }));
-
-        // If we got here without error in actual flow, email might exist
-        // But we'll let Supabase handle the actual duplicate check
-        await signUpWithEmail(values.email, values.password, values.fullName);
+        // Update profil untuk memastikan data terbaru
+        await supabase
+          .from('profiles')
+          .update({
+            full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', user.id)
+          .select()
+          .single();
       }
 
       setFeedback({ type: "success", message: copy.successMessage });
@@ -267,33 +181,7 @@ export function AuthView({ mode }: { mode: AuthMode }) {
     }
   };
 
-  const handleProviderClick = async (provider: "Google" | "GitHub") => {
-    setFeedback(null);
-    setIsSubmitting(true);
 
-    try {
-      if (provider === "Google") {
-        await signInWithGoogle();
-      } else if (provider === "GitHub") {
-        await signInWithGitHub();
-      }
-    } catch (error) {
-      let errorMessage = error instanceof Error ? error.message : `Login dengan ${provider} gagal`;
-      
-      // Improve error messages untuk OAuth
-      if (errorMessage.includes('PKCE')) {
-        errorMessage = `Login dengan ${provider} tidak dapat diproses. Silakan coba lagi.`;
-      } else if (errorMessage.includes('redirect')) {
-        errorMessage = `Gagal mengarahkan ke ${provider}. Silakan coba lagi.`;
-      }
-      
-      setFeedback({
-        type: "info",
-        message: errorMessage,
-      });
-      setIsSubmitting(false);
-    }
-  };
 
   return (
     <main
@@ -398,19 +286,6 @@ export function AuthView({ mode }: { mode: AuthMode }) {
               </div>
 
               <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
-                {mode === "register" ? (
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium text-slate-700">Nama lengkap</p>
-                    <AuthInput
-                      autoComplete="name"
-                      error={errors.fullName}
-                      icon={<UserRound className="h-4 w-4" />}
-                      onChange={updateValue("fullName")}
-                      placeholder="Masukkan nama lengkap"
-                      value={values.fullName}
-                    />
-                  </div>
-                ) : null}
 
                 <div className="space-y-2">
                   <p className="text-sm font-medium text-slate-700">Email</p>
@@ -453,39 +328,7 @@ export function AuthView({ mode }: { mode: AuthMode }) {
                   />
                 </div>
 
-                {mode === "register" ? (
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium text-slate-700">Konfirmasi password</p>
-                    <AuthInput
-                      autoComplete="new-password"
-                      error={errors.confirmPassword}
-                      icon={<LockKeyhole className="h-4 w-4" />}
-                      onChange={updateValue("confirmPassword")}
-                      placeholder="Ulangi password"
-                      rightSlot={
-                        <button
-                          aria-label={
-                            confirmPasswordVisible
-                              ? "Sembunyikan konfirmasi password"
-                              : "Tampilkan konfirmasi password"
-                          }
-                          className="rounded-full p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
-                          onClick={() => setConfirmPasswordVisible((current) => !current)}
-                          tabIndex={-1}
-                          type="button"
-                        >
-                          {confirmPasswordVisible ? (
-                            <EyeOff className="h-4 w-4" />
-                          ) : (
-                            <Eye className="h-4 w-4" />
-                          )}
-                        </button>
-                      }
-                      type={confirmPasswordVisible ? "text" : "password"}
-                      value={values.confirmPassword}
-                    />
-                  </div>
-                ) : null}
+
 
                 <Button
                   className="h-12 w-full rounded-2xl bg-emerald-600 text-base font-semibold text-white hover:bg-emerald-700"
@@ -497,36 +340,7 @@ export function AuthView({ mode }: { mode: AuthMode }) {
                 </Button>
               </form>
 
-              <div className="my-6 flex items-center gap-3">
-                <div className="h-px flex-1 bg-slate-200" />
-                <p className="text-xs font-medium uppercase tracking-[0.22em] text-slate-400">
-                  atau lanjutkan dengan
-                </p>
-                <div className="h-px flex-1 bg-slate-200" />
-              </div>
 
-              <div className="grid gap-3 sm:grid-cols-2">
-                <Button
-                  className="h-12 rounded-2xl border-slate-200 text-slate-700 hover:bg-slate-50"
-                  disabled={isSubmitting}
-                  onClick={() => handleProviderClick("Google")}
-                  type="button"
-                  variant="outline"
-                >
-                  <GoogleIcon className="h-5 w-5" />
-                  Google
-                </Button>
-                <Button
-                  className="h-12 rounded-2xl border-slate-200 text-slate-700 hover:bg-slate-50"
-                  disabled={isSubmitting}
-                  onClick={() => handleProviderClick("GitHub")}
-                  type="button"
-                  variant="outline"
-                >
-                  <Github className="h-5 w-5" />
-                  GitHub
-                </Button>
-              </div>
 
               {feedback ? (
                 <div
@@ -541,16 +355,7 @@ export function AuthView({ mode }: { mode: AuthMode }) {
                 </div>
               ) : null}
 
-              <div className="mt-8 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-slate-50 px-4 py-4">
-                <p className="text-sm text-slate-600">{copy.helperText}</p>
-                <Link
-                  className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-700 transition hover:text-emerald-800"
-                  href={copy.helperLink}
-                >
-                  {copy.helperLinkLabel}
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-              </div>
+
             </div>
           </div>
         </section>
