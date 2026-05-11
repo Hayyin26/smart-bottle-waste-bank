@@ -3,10 +3,11 @@ import type { WasteUser } from '@/types/types';
 
 export async function getNasabahList(): Promise<WasteUser[]> {
   try {
-    // Fetch profiles
+    // Fetch profiles with role = 'user' only (exclude admins)
     const { data: profiles, error: profilesError } = await supabase
       .from('profiles')
       .select('*')
+      .eq('role', 'user')
       .order('updated_at', { ascending: false });
 
     if (profilesError) {

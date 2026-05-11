@@ -60,7 +60,7 @@ export default function UserPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold">Manajemen User</h1>
-            <p className="text-muted-foreground">
+            <p className="text-muted-formeground">
               Total {stats.total} user terdaftar
             </p>
           </div>
