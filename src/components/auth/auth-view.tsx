@@ -87,7 +87,7 @@ function AuthInput({
   );
 }
 
-export function AuthView({ mode }: { mode: AuthMode }) {
+export function AuthView({ mode, requiredRole }: { mode: AuthMode; requiredRole?: 'admin' | 'user' }) {
   const router = useRouter();
   const copy = authCopy[mode];
   const [values, setValues] = useState<FormValues>({
@@ -151,6 +151,29 @@ export function AuthView({ mode }: { mode: AuthMode }) {
           .eq('id', user.id)
           .select()
           .single();
+
+        // Check role-based access if requiredRole is specified
+        if (requiredRole) {
+          const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', user.id)
+            .single();
+
+          if (profileError || !profile) {
+            throw new Error('Tidak dapat mengakses profil');
+          }
+
+          if (profile.role !== requiredRole) {
+            // Wrong role - logout and show error
+            await supabase.auth.signOut();
+            throw new Error(
+              requiredRole === 'admin'
+                ? 'Akun Anda bukan admin. Hanya admin yang dapat mengakses halaman ini.'
+                : 'Akun Anda bukan user biasa. Silakan gunakan halaman login yang sesuai.'
+            );
+          }
+        }
       }
 
       setFeedback({ type: "success", message: copy.successMessage });
