@@ -7,6 +7,7 @@ import { getTransaksiList } from "@/services/transaksi.service";
 import { useState, useEffect } from "react";
 import type { WasteUser } from "@/types/types";
 import type { WasteTransaction } from "@/data/waste-transactions";
+import { BOTTLE_CATEGORIES, type BottleType } from "@/utils/bottle-classifier";
 
 export default function LaporanPage() {
   const [nasabahList, setNasabahList] = useState<WasteUser[]>([]);
@@ -42,18 +43,25 @@ export default function LaporanPage() {
   const totalUser = nasabahList.length;
   const totalUserAktif = nasabahList.filter(n => n.status === "aktif").length;
   const totalTransaksi = wasteTransactions.length;
-  const totalSampahDiolah = wasteTransactions.reduce((total, t) => total + t.berat, 0);
+  
+  // Calculate weight in grams (since now stored as gram, not kg)
+  const totalSampahGram = wasteTransactions.reduce((total, t) => total + t.berat, 0);
+  const totalSampahKg = totalSampahGram / 1000; // Convert to kg for display
+  
   const totalPointDistribusi = wasteTransactions
     .filter(t => t.status === "selesai")
     .reduce((total, t) => total + t.nilaiTukar, 0);
 
-  // Waste type statistics
-  const wasteTypeStats = wasteTransactions.reduce((acc: Record<string, { count: number; totalBerat: number }>, t) => {
-    if (!acc[t.jenisAmpah]) {
-      acc[t.jenisAmpah] = { count: 0, totalBerat: 0 };
+  // Waste type statistics (now per kategori botol)
+  const wasteTypeStats = wasteTransactions.reduce((acc: Record<string, { count: number; totalBerat: number; totalPoints: number }>, t) => {
+    const bottleCategory = t.jenisAmpah; // e.g., "BOTOL KECIL", "BOTOL SEDANG", "BOTOL BESAR"
+    
+    if (!acc[bottleCategory]) {
+      acc[bottleCategory] = { count: 0, totalBerat: 0, totalPoints: 0 };
     }
-    acc[t.jenisAmpah].count += 1;
-    acc[t.jenisAmpah].totalBerat += t.berat;
+    acc[bottleCategory].count += 1;
+    acc[bottleCategory].totalBerat += t.berat;
+    acc[bottleCategory].totalPoints += t.nilaiTukar;
     return acc;
   }, {});
 
@@ -77,8 +85,44 @@ export default function LaporanPage() {
     { bulan: "Januari", transaksi: 8, sampah: 12.5, point: 2000 },
     { bulan: "Februari", transaksi: 12, sampah: 18.3, point: 3200 },
     { bulan: "Maret", transaksi: 10, sampah: 15.2, point: 2800 },
-    { bulan: "April", transaksi: wasteTransactions.length, sampah: totalSampahDiolah, point: totalPointDistribusi },
+    { bulan: "April", transaksi: wasteTransactions.length, sampah: totalSampahKg, point: totalPointDistribusi },
   ];
+
+  // Category breakdown untuk 3 kategori botol
+  const categoryBreakdown = {
+    KECIL: {
+      ...BOTTLE_CATEGORIES.KECIL,
+      count: 0,
+      totalBerat: 0,
+      totalPoints: 0,
+    },
+    SEDANG: {
+      ...BOTTLE_CATEGORIES.SEDANG,
+      count: 0,
+      totalBerat: 0,
+      totalPoints: 0,
+    },
+    BESAR: {
+      ...BOTTLE_CATEGORIES.BESAR,
+      count: 0,
+      totalBerat: 0,
+      totalPoints: 0,
+    },
+  };
+
+  // Populate breakdown dari transactions
+  wasteTransactions.forEach(t => {
+    // Map from display name back to key
+    let categoryKey: BottleType = 'KECIL';
+    if (t.jenisAmpah.includes('SEDANG')) categoryKey = 'SEDANG';
+    else if (t.jenisAmpah.includes('BESAR')) categoryKey = 'BESAR';
+    
+    if (categoryBreakdown[categoryKey]) {
+      categoryBreakdown[categoryKey].count += 1;
+      categoryBreakdown[categoryKey].totalBerat += t.berat;
+      categoryBreakdown[categoryKey].totalPoints += t.nilaiTukar;
+    }
+  });
 
   return (
     <div className="space-y-6">
@@ -121,11 +165,11 @@ export default function LaporanPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Total Sampah</p>
-                <p className="mt-2 text-2xl font-bold">{totalSampahDiolah.toFixed(1)} kg</p>
+                <p className="mt-2 text-2xl font-bold">{totalSampahKg.toFixed(2)} kg</p>
               </div>
               <Trash2 className="h-8 w-8 text-orange-500" />
             </div>
-            <p className="mt-2 text-xs text-gray-600">Rata-rata: {(totalSampahDiolah / totalTransaksi).toFixed(2)} kg/transaksi</p>
+            <p className="mt-2 text-xs text-gray-600">({totalSampahGram.toFixed(0)} gram)</p>
           </div>
 
           <div className="rounded-lg border border-border bg-white p-4 dark:bg-slate-900">
@@ -143,30 +187,50 @@ export default function LaporanPage() {
         </div>
       </Container>
 
-      {/* Waste Type Statistics */}
+      {/* NOTE: Removed cards - switch to table-first design per user's request */}
+
+      {/* Jenis Sampah Statistics (Per Kategori) - TABLE-FIRST */}
       <Container className="py-4">
-        <h2 className="mb-4 text-xl font-semibold">Statistik Jenis Sampah</h2>
+        <h2 className="mb-4 text-xl font-semibold">Statistik Jenis Sampah (Per Kategori Botol)</h2>
         <div className="overflow-x-auto rounded-lg border border-border">
           <table className="w-full">
             <thead>
               <tr className="border-b bg-slate-50 dark:bg-slate-800">
                 <th className="px-4 py-3 text-left text-sm font-semibold">Jenis Sampah</th>
                 <th className="px-4 py-3 text-left text-sm font-semibold">Jumlah Transaksi</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold">Total Berat (kg)</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold">Total Berat</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold">Total Points</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold">Range Berat</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold">Points/Botol</th>
                 <th className="px-4 py-3 text-left text-sm font-semibold">Rata-rata/Transaksi</th>
               </tr>
             </thead>
             <tbody>
-              {Object.entries(wasteTypeStats)
-                .sort((a, b) => b[1].count - a[1].count)
-                .map(([jenisAmpah, stat]) => (
-                  <tr key={jenisAmpah} className="border-b hover:bg-slate-50 dark:hover:bg-slate-800">
-                    <td className="px-4 py-3 text-sm font-medium">{jenisAmpah}</td>
-                    <td className="px-4 py-3 text-sm">{stat.count}</td>
-                    <td className="px-4 py-3 text-sm">{stat.totalBerat.toFixed(2)}</td>
-                    <td className="px-4 py-3 text-sm">{(stat.totalBerat / stat.count).toFixed(2)} kg</td>
+              {Object.entries(categoryBreakdown).map(([key, category]) => {
+                const color = category.color || '#3B82F6';
+                const count = category.count || 0;
+                const totalBerat = category.totalBerat || 0; // grams
+                const totalPoints = category.totalPoints || 0;
+                const avgBeratPerTx = count > 0 ? (totalBerat / count) : 0; // grams
+                const avgPointsPerTx = count > 0 ? Math.round(totalPoints / count) : 0;
+
+                return (
+                  <tr key={key} className="border-b hover:bg-slate-50 dark:hover:bg-slate-800">
+                    <td className="px-4 py-3 text-sm font-medium">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: color }} />
+                        {category.name}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-sm">{count}</td>
+                    <td className="px-4 py-3 text-sm">{(totalBerat / 1000).toFixed(2)} kg ({totalBerat.toFixed(0)}g)</td>
+                    <td className="px-4 py-3 text-sm text-green-600 font-semibold">{totalPoints.toLocaleString()}</td>
+                    <td className="px-4 py-3 text-sm">{category.minWeight}-{category.maxWeight} g</td>
+                    <td className="px-4 py-3 text-sm">{category.points} pt</td>
+                    <td className="px-4 py-3 text-sm">{(avgBeratPerTx / 1000).toFixed(2)} kg / {avgPointsPerTx} pt</td>
                   </tr>
-                ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -190,10 +254,15 @@ export default function LaporanPage() {
             <tbody>
               {userStats.slice(0, 10).map((user, index) => (
                 <tr key={user.id} className="border-b hover:bg-slate-50 dark:hover:bg-slate-800">
-                  <td className="px-4 py-3 text-sm font-semibold">{index + 1}</td>
+                  <td className="px-4 py-3 text-sm font-semibold">
+                    {index === 0 && "🥇"}
+                    {index === 1 && "🥈"}
+                    {index === 2 && "🥉"}
+                    {index > 2 && index + 1}
+                  </td>
                   <td className="px-4 py-3 text-sm">{user.nama}</td>
                   <td className="px-4 py-3 text-sm">{user.transactionCount}</td>
-                  <td className="px-4 py-3 text-sm">{user.totalBerat.toFixed(2)}</td>
+                  <td className="px-4 py-3 text-sm">{(user.totalBerat / 1000).toFixed(2)}</td>
                   <td className="px-4 py-3 text-sm text-green-600 font-semibold">{user.totalPoint.toLocaleString()}</td>
                   <td className="px-4 py-3 text-sm font-semibold">{user.saldoPoint.toLocaleString()}</td>
                 </tr>

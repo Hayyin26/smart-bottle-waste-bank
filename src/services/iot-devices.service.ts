@@ -1,5 +1,21 @@
 import { supabase } from '@/lib/supabase';
 
+function formatSupabaseError(error: unknown): string {
+  if (!error) {
+    return 'Unknown error';
+  }
+
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  try {
+    return JSON.stringify(error, null, 2);
+  } catch {
+    return String(error);
+  }
+}
+
 export interface IoTDevice {
   device_id: string;
   location: string | null;
@@ -99,11 +115,22 @@ export async function deleteDevice(deviceId: string): Promise<boolean> {
 export async function getTotalDevices(): Promise<number> {
   const { count, error } = await supabase
     .from('iot_devices')
-    .select('*', { count: 'exact', head: true });
+    .select('device_id', { count: 'exact', head: true });
 
   if (error) {
-    console.error('Error counting devices:', error);
-    return 0;
+    console.error('Error counting devices:', formatSupabaseError(error));
+
+    // Fallback query helps when count-only requests fail on some RLS/policy setups.
+    const { data, error: fallbackError } = await supabase
+      .from('iot_devices')
+      .select('device_id');
+
+    if (fallbackError) {
+      console.error('Error counting devices (fallback):', formatSupabaseError(fallbackError));
+      return 0;
+    }
+
+    return data?.length || 0;
   }
 
   return count || 0;
