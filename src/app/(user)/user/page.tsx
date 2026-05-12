@@ -158,7 +158,7 @@ export default function UserDashboard() {
 
   async function handleLogout() {
     await supabase.auth.signOut();
-    router.push("/");
+    router.push("/iot-auth?device=ESP32-BOTOL-01");
   }
 
   if (loading) {
