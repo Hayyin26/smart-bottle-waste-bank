@@ -13,13 +13,14 @@ export default function UserPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<"semua" | "aktif" | "nonaktif">("semua");
 
+  const fetchData = async () => {
+    setLoading(true);
+    const data = await getNasabahList();
+    setUserList(data);
+    setLoading(false);
+  };
+
   useEffect(() => {
-    async function fetchData() {
-      setLoading(true);
-      const data = await getNasabahList();
-      setUserList(data);
-      setLoading(false);
-    }
     fetchData();
   }, []);
 
@@ -142,7 +143,7 @@ export default function UserPage() {
 
       {/* Table */}
       <Container className="py-4">
-        <UserTable userList={filteredUser} />
+        <UserTable userList={filteredUser} onRefresh={fetchData} />
       </Container>
     </div>
   );
