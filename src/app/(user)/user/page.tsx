@@ -8,6 +8,7 @@ interface UserProfile {
   id: string;
   full_name: string;
   total_points: number;
+  saldo_point?: number;
   created_at: string;
 }
 
@@ -33,6 +34,8 @@ export default function UserDashboard() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [userRank, setUserRank] = useState<number>(0);
+  const [isConvertingPoints, setIsConvertingPoints] = useState(false);
+  const [convertError, setConvertError] = useState<string | null>(null);
 
   useEffect(() => {
     checkUser();
@@ -161,6 +164,45 @@ export default function UserDashboard() {
     router.push("/iot-auth?device=ESP32-BOTOL-01");
   }
 
+  async function handleTukarPoints() {
+    if (!profile?.total_points || profile.total_points <= 0) {
+      return;
+    }
+
+    try {
+      setIsConvertingPoints(true);
+      setConvertError(null);
+
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !sessionData.session?.access_token) {
+        throw new Error("Session tidak valid. Silakan login ulang.");
+      }
+
+      const response = await fetch("/api/user/tukar-point", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${sessionData.session.access_token}`,
+        },
+      });
+
+      const body = await response.json();
+      if (!response.ok) {
+        const errMessage = body.error || body.message || "Gagal menukar point.";
+        setConvertError(errMessage);
+        console.error("Error converting points (status", response.status, "):", body);
+        return;
+      }
+
+      setProfile(body.data);
+    } catch (error) {
+      console.error("Error converting points:", error);
+      setConvertError("Gagal menukar point. Silakan coba lagi.");
+    } finally {
+      setIsConvertingPoints(false);
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -271,6 +313,16 @@ export default function UserDashboard() {
               </svg>
               Keep recycling!
             </p>
+            <button
+              onClick={handleTukarPoints}
+              disabled={!profile?.total_points || profile.total_points <= 0 || isConvertingPoints}
+              className="mt-4 inline-flex items-center justify-center rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-400"
+            >
+              {isConvertingPoints ? "Memproses..." : "Tukar Point"}
+            </button>
+            {convertError && (
+              <p className="mt-3 text-sm text-red-600 dark:text-red-400">{convertError}</p>
+            )}
           </div>
 
           {/* Total Transactions */}
@@ -476,6 +528,22 @@ export default function UserDashboard() {
                   <p className="text-4xl font-bold">{profile?.total_points || 0}</p>
                 </div>
               </div>
+            </div>
+
+            {/* Saldo Card */}
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-gray-100 dark:border-slate-700 p-6">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Saldo</p>
+                  <p className="text-3xl font-bold text-gray-900 dark:text-white">{profile?.saldo_point || 0}</p>
+                </div>
+                <span className="rounded-full bg-emerald-100 text-emerald-700 px-3 py-1 text-xs font-semibold dark:bg-emerald-900/20 dark:text-emerald-200">
+                  Point
+                </span>
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Saldo akan bertambah ketika kamu tukar point.
+              </p>
             </div>
 
             {/* Quick Stats */}

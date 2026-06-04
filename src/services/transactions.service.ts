@@ -367,3 +367,108 @@ export async function getRecentTransactions(limit: number = 10): Promise<Transac
     return [];
   }
 }
+
+export interface DailyActivityData {
+  date: string;
+  count: number;
+}
+
+export async function getWeeklyActivity(): Promise<DailyActivityData[]> {
+  try {
+    // Get 7 days of transaction data
+    const { data, error } = await supabase
+      .from('transactions')
+      .select('created_at')
+      .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
+
+    if (error) {
+      console.error('Error fetching weekly activity:', error);
+      return [];
+    }
+
+    // Group by date
+    const activityMap = new Map<string, number>();
+    const today = new Date();
+    
+    // Initialize last 7 days with 0
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toLocaleDateString('en-CA'); // YYYY-MM-DD format
+      activityMap.set(dateStr, 0);
+    }
+
+    // Count transactions per day
+    (data || []).forEach((transaction) => {
+      const date = new Date(transaction.created_at);
+      const dateStr = date.toLocaleDateString('en-CA');
+      activityMap.set(dateStr, (activityMap.get(dateStr) || 0) + 1);
+    });
+
+    // Convert to array sorted by date
+    const result = Array.from(activityMap.entries())
+      .map(([date, count]) => ({
+        date,
+        count,
+      }))
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    return result;
+  } catch (err) {
+    console.error('Exception in getWeeklyActivity:', err);
+    return [];
+  }
+}
+
+export interface DeviceActivityData {
+  device_id: string;
+  location: string;
+  count: number;
+}
+
+export async function getTopDevicesByScans(limit: number = 5): Promise<DeviceActivityData[]> {
+  try {
+    // Get all devices with their transaction counts
+    const { data: devices, error: devicesError } = await supabase
+      .from('iot_devices')
+      .select('device_id, location');
+
+    if (devicesError) {
+      console.error('Error fetching devices:', devicesError);
+      return [];
+    }
+
+    // Get transaction counts per device
+    const { data: transactions, error: transError } = await supabase
+      .from('transactions')
+      .select('device_id');
+
+    if (transError) {
+      console.error('Error fetching transactions:', transError);
+      return [];
+    }
+
+    // Count transactions per device
+    const deviceCounts = new Map<string, number>();
+    (transactions || []).forEach((trans) => {
+      if (trans.device_id) {
+        deviceCounts.set(trans.device_id, (deviceCounts.get(trans.device_id) || 0) + 1);
+      }
+    });
+
+    // Combine device info with counts and sort
+    const result = (devices || [])
+      .map((device) => ({
+        device_id: device.device_id,
+        location: device.location || 'Unknown Location',
+        count: deviceCounts.get(device.device_id) || 0,
+      }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, limit);
+
+    return result;
+  } catch (err) {
+    console.error('Exception in getTopDevicesByScans:', err);
+    return [];
+  }
+}

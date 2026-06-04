@@ -4,8 +4,15 @@ import Container from "@/components/container";
 import TransactionList from "@/components/iot/transaction-list";
 import DeviceStatus from "@/components/iot/device-status";
 import Leaderboard from "@/components/iot/leaderboard";
-import { getTotalUsers } from "@/services/profiles.service";
-import { getTotalTransactions, getTotalPointsDistributed } from "@/services/transactions.service";
+import WeeklyActivityChart from "@/components/dashboard/weekly-activity-chart";
+import TopUsersChart from "@/components/dashboard/top-users-chart";
+import { getTopUsers, type Profile, getTotalUsers } from "@/services/profiles.service";
+import {
+  getTotalTransactions,
+  getTotalPointsDistributed,
+  getWeeklyActivity,
+  type DailyActivityData,
+} from "@/services/transactions.service";
 import { getTotalDevices } from "@/services/iot-devices.service";
 import { useState, useEffect } from "react";
 import { Users, Activity, Award, Wifi } from "lucide-react";
@@ -17,6 +24,8 @@ export default function Home() {
     totalPoints: 0,
     totalDevices: 0,
   });
+  const [weeklyData, setWeeklyData] = useState<DailyActivityData[]>([]);
+  const [topUsers, setTopUsers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -29,17 +38,22 @@ export default function Home() {
 
   async function fetchStats() {
     setLoading(true);
-    const [usersResult, transactionsResult, pointsResult, devicesResult] = await Promise.allSettled([
-      getTotalUsers(),
-      getTotalTransactions(),
-      getTotalPointsDistributed(),
-      getTotalDevices(),
-    ]);
+    const [usersResult, transactionsResult, pointsResult, devicesResult, weeklyResult, topUsersResult] =
+      await Promise.allSettled([
+        getTotalUsers(),
+        getTotalTransactions(),
+        getTotalPointsDistributed(),
+        getTotalDevices(),
+        getWeeklyActivity(),
+        getTopUsers(5),
+      ]);
 
     const users = usersResult.status === 'fulfilled' ? usersResult.value : 0;
     const transactions = transactionsResult.status === 'fulfilled' ? transactionsResult.value : 0;
     const points = pointsResult.status === 'fulfilled' ? pointsResult.value : 0;
     const devices = devicesResult.status === 'fulfilled' ? devicesResult.value : 0;
+    const weekly = weeklyResult.status === 'fulfilled' ? weeklyResult.value : [];
+    const topUsersData = topUsersResult.status === 'fulfilled' ? topUsersResult.value : [];
 
     if (usersResult.status === 'rejected') {
       console.error('Failed to fetch total users:', usersResult.reason);
@@ -53,6 +67,12 @@ export default function Home() {
     if (devicesResult.status === 'rejected') {
       console.error('Failed to fetch total devices:', devicesResult.reason);
     }
+    if (weeklyResult.status === 'rejected') {
+      console.error('Failed to fetch weekly activity:', weeklyResult.reason);
+    }
+    if (topUsersResult.status === 'rejected') {
+      console.error('Failed to fetch top users:', topUsersResult.reason);
+    }
     
     setStats({
       totalUsers: users,
@@ -60,6 +80,8 @@ export default function Home() {
       totalPoints: points,
       totalDevices: devices,
     });
+    setWeeklyData(weekly);
+    setTopUsers(topUsersData);
     setLoading(false);
   }
 
@@ -141,6 +163,14 @@ export default function Home() {
               </div>
             );
           })}
+        </div>
+      </Container>
+
+      {/* Dashboard Charts */}
+      <Container className="py-4">
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+          <WeeklyActivityChart data={weeklyData} />
+          <TopUsersChart users={topUsers} />
         </div>
       </Container>
 
