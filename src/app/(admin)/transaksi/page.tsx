@@ -41,7 +41,7 @@ export default function TransaksiPage() {
     totalNilai: wasteTransactions
       .filter(t => t.status === "selesai")
       .reduce((total, t) => total + t.nilaiTukar, 0),
-    totalBerat: wasteTransactions.reduce((total, t) => total + t.berat, 0),
+    // removed bottle weight from transactions; totalBerat no longer applicable
     // Per kategori
     kecil: wasteTransactions.filter(t => t.jenisAmpah.includes('KECIL')).length,
     sedang: wasteTransactions.filter(t => t.jenisAmpah.includes('SEDANG')).length,
@@ -93,10 +93,7 @@ export default function TransaksiPage() {
               {stats.totalNilai.toLocaleString()}
             </p>
           </div>
-          <div className="rounded-lg border border-border bg-white p-4 dark:bg-slate-900">
-            <p className="text-sm text-muted-foreground">Total Sampah</p>
-            <p className="mt-2 text-2xl font-bold">{(stats.totalBerat / 1000).toFixed(1)} kg</p>
-          </div>
+          {/* Total Sampah removed because weight is no longer stored in the database */}
         </div>
       </Container>
 
@@ -112,7 +109,7 @@ export default function TransaksiPage() {
               </div>
               <div className="text-sm space-y-1">
                 <p><span className="text-muted-foreground">Transaksi:</span> <span className="font-bold">{stats[key.toLowerCase() as keyof typeof stats]}</span></p>
-                <p><span className="text-muted-foreground">Range:</span> <span className="font-semibold text-xs">{category.minWeight}-{category.maxWeight}g</span></p>
+                {/* Range removed: weight thresholds are now stored only in the DB and not shown here */}
                 <p><span className="text-muted-foreground">Points:</span> <span className="font-semibold text-green-600">{category.points} pt/botol</span></p>
               </div>
             </div>

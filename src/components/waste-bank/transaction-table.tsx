@@ -28,11 +28,10 @@ export default function TransactionTable({ transactions }: TransactionTableProps
     <div className="overflow-x-auto rounded-lg border border-border shadow-sm">
       <table className="w-full">
         <thead>
-          <tr className="border-b bg-slate-50 dark:bg-slate-800">
+            <tr className="border-b bg-slate-50 dark:bg-slate-800">
             <th className="px-4 py-3 text-left text-sm font-semibold">ID</th>
             <th className="px-4 py-3 text-left text-sm font-semibold">User</th>
             <th className="px-4 py-3 text-left text-sm font-semibold">Kategori Botol</th>
-            <th className="px-4 py-3 text-left text-sm font-semibold">Berat (gram)</th>
             <th className="px-4 py-3 text-left text-sm font-semibold">Point</th>
             <th className="px-4 py-3 text-left text-sm font-semibold">Tanggal</th>
             <th className="px-4 py-3 text-left text-sm font-semibold">Waktu</th>
@@ -60,7 +59,6 @@ export default function TransactionTable({ transactions }: TransactionTableProps
                     <span className="font-semibold">{transaction.jenisAmpah}</span>
                   </div>
                 </td>
-                <td className="px-4 py-3 text-sm font-semibold">{transaction.berat.toFixed(1)}g</td>
                 <td className="px-4 py-3 text-sm text-green-600 font-semibold">
                   {transaction.nilaiTukar.toLocaleString()} pt
                 </td>
