@@ -29,16 +29,6 @@ const generateSpec = (data: DeviceActivityData[]): IBarChartSpec => {
     color: ["#10b981"],
     tooltip: {
       trigger: ["hover"],
-      content: [
-        {
-          key: "location",
-          value: "{fullLocation}",
-        },
-        {
-          key: "Scans",
-          value: "{count}",
-        },
-      ],
     },
     axes: [
       {
