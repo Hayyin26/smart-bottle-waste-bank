@@ -161,16 +161,7 @@ export default function LaporanPage() {
             <p className="mt-2 text-xs text-gray-600">Rata-rata per user: {(totalTransaksi / totalUser).toFixed(1)}</p>
           </div>
 
-          <div className="rounded-lg border border-border bg-white p-4 dark:bg-slate-900">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Total Sampah</p>
-                <p className="mt-2 text-2xl font-bold">{totalSampahKg.toFixed(2)} kg</p>
-              </div>
-              <Trash2 className="h-8 w-8 text-orange-500" />
-            </div>
-            <p className="mt-2 text-xs text-gray-600">({totalSampahGram.toFixed(0)} gram)</p>
-          </div>
+          {/* Total Sampah metric removed (weight no longer stored in transactions) */}
 
           <div className="rounded-lg border border-border bg-white p-4 dark:bg-slate-900">
             <div className="flex items-center justify-between">
@@ -198,11 +189,9 @@ export default function LaporanPage() {
               <tr className="border-b bg-slate-50 dark:bg-slate-800">
                 <th className="px-4 py-3 text-left text-sm font-semibold">Jenis Sampah</th>
                 <th className="px-4 py-3 text-left text-sm font-semibold">Jumlah Transaksi</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold">Total Berat</th>
                 <th className="px-4 py-3 text-left text-sm font-semibold">Total Points</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold">Range Berat</th>
                 <th className="px-4 py-3 text-left text-sm font-semibold">Points/Botol</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold">Rata-rata/Transaksi</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold">Rata-rata Transaksi</th>
               </tr>
             </thead>
             <tbody>
@@ -223,11 +212,9 @@ export default function LaporanPage() {
                       </div>
                     </td>
                     <td className="px-4 py-3 text-sm">{count}</td>
-                    <td className="px-4 py-3 text-sm">{(totalBerat / 1000).toFixed(2)} kg ({totalBerat.toFixed(0)}g)</td>
                     <td className="px-4 py-3 text-sm text-green-600 font-semibold">{totalPoints.toLocaleString()}</td>
-                    <td className="px-4 py-3 text-sm">{category.minWeight}-{category.maxWeight} g</td>
                     <td className="px-4 py-3 text-sm">{category.points} pt</td>
-                    <td className="px-4 py-3 text-sm">{(avgBeratPerTx / 1000).toFixed(2)} kg / {avgPointsPerTx} pt</td>
+                    <td className="px-4 py-3 text-sm">{avgPointsPerTx} pt</td>
                   </tr>
                 );
               })}
@@ -246,7 +233,6 @@ export default function LaporanPage() {
                 <th className="px-4 py-3 text-left text-sm font-semibold">Peringkat</th>
                 <th className="px-4 py-3 text-left text-sm font-semibold">Nama</th>
                 <th className="px-4 py-3 text-left text-sm font-semibold">Transaksi</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold">Total Sampah (kg)</th>
                 <th className="px-4 py-3 text-left text-sm font-semibold">Total Point</th>
                 <th className="px-4 py-3 text-left text-sm font-semibold">Saldo Saat Ini</th>
               </tr>
@@ -262,7 +248,6 @@ export default function LaporanPage() {
                   </td>
                   <td className="px-4 py-3 text-sm">{user.nama}</td>
                   <td className="px-4 py-3 text-sm">{user.transactionCount}</td>
-                  <td className="px-4 py-3 text-sm">{(user.totalBerat / 1000).toFixed(2)}</td>
                   <td className="px-4 py-3 text-sm text-green-600 font-semibold">{user.totalPoint.toLocaleString()}</td>
                   <td className="px-4 py-3 text-sm font-semibold">{user.saldoPoint.toLocaleString()}</td>
                 </tr>
