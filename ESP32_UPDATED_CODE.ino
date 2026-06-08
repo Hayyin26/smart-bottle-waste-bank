@@ -24,8 +24,8 @@ const char* default_user_id = "9db3ac82-dc1c-4f28-abe2-a8482986735f";
 
 // ⚠️ PENTING: Ganti dengan URL production atau IP lokal yang benar!
 // Production: "https://your-domain.vercel.app/api/iot/get-user"
-// Local: "http://192.168.1.X:3000/api/iot/get-user"
-const char* api_get_user = "http://192.168.100.53:3000/api/iot/get-user";
+// Local: "http://192.168.1.7:3000/api/iot/get-user"
+const char* api_get_user = "http://192.168.1.7:3000/api/iot/get-user";
 
 // Session variables
 String session_token = "";

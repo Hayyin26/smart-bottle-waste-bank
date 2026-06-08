@@ -1,212 +1,219 @@
-# 🌐 Konfigurasi Jaringan Terbaru
+# 📡 Current Network Configuration
 
-**Tanggal Update:** 5 Juni 2026
+**Last Updated:** 2026-06-08  
+**WiFi Network:** Home WiFi / Current WiFi
 
 ---
 
-## 📡 **WiFi Configuration**
+## 🌐 Network Details
 
-```cpp
-SSID: "JTI-POLINEMA-2G"
-Password: "jtifast!"
+### **WiFi Information:**
 ```
-
----
-
-## 🖥️ **IP Address Configuration**
+SSID:         [Your WiFi Name]
+Password:     [Your WiFi Password]
+Gateway:      192.168.1.1
+Subnet Mask:  255.255.255.0
+```
 
 ### **Komputer (Laptop):**
 ```
-IPv4 Address: 192.168.73.134
-Subnet Mask:  255.255.255.192
-Gateway:      192.168.73.129
+IPv4 Address: 192.168.1.7
+Subnet Mask:  255.255.255.0
+Gateway:      192.168.1.1
+IPv6:         2001:448a:50a0:1f57:846:cbf9:85a4:a98a
 ```
 
-### **ESP32 (Static IP):**
+### **ESP32 (Static IP - RECOMMENDED):**
 ```cpp
-IP Address:   192.168.73.200
-Gateway:      192.168.73.129
-Subnet:       255.255.255.192
+IP Address:   192.168.1.200
+Gateway:      192.168.1.1
+Subnet:       255.255.255.0
 DNS Primary:  8.8.8.8
 DNS Secondary: 8.8.4.4
 ```
 
 ---
 
-## 🔗 **API Endpoints**
+## 🔗 URLs & Endpoints
 
-### **Web App (Next.js):**
+### **Next.js Development Server:**
 ```
 Local:   http://localhost:3000
-Network: http://192.168.73.134:3000
+Network: http://192.168.1.7:3000
 ```
 
 **IoT Auth Page:**
 ```
-http://192.168.73.134:3000/iot-auth?device=ESP32-BOTOL-01
+http://192.168.1.7:3000/iot-auth?device=ESP32-BOTOL-01
 ```
 
 ### **ESP32 HTTP Server:**
 ```
-http://192.168.73.200/
-http://192.168.73.200/set-token?token=xxx
+http://192.168.1.200/
+http://192.168.1.200/set-token?token=xxx
 ```
 
 ### **API Get User (dari ESP32):**
 ```
-http://192.168.73.134:3000/api/iot/get-user
+http://192.168.1.7:3000/api/iot/get-user
 ```
 
 ---
 
-## ✅ **Verifikasi Konfigurasi**
+## ⚙️ Configuration Files
 
-### **1. Cek WiFi Credentials di ESP32:**
+### **1. ESP32 Code (main.cpp):**
 ```cpp
 // File: IOT/PBL/src/main.cpp
-const char* ssid = "JTI-POLINEMA-2G";        ✅
-const char* password = "jtifast!";            ✅
+const char* api_get_user = "http://192.168.1.7:3000/api/iot/get-user";  ✅
 ```
 
-### **2. Cek API Endpoint di ESP32:**
+### **2. ESP32 Static IP Configuration:**
 ```cpp
-// File: IOT/PBL/src/main.cpp
-const char* api_get_user = "http://192.168.73.134:3000/api/iot/get-user";  ✅
+// Add to setup() in main.cpp
+IPAddress local_IP(192, 168, 1, 200);      // ESP32 IP
+IPAddress gateway(192, 168, 1, 1);          // Router IP
+IPAddress subnet(255, 255, 255, 0);
+IPAddress primaryDNS(8, 8, 8, 8);
+IPAddress secondaryDNS(8, 8, 4, 4);
+
+if (!WiFi.config(local_IP, gateway, subnet, primaryDNS, secondaryDNS)) {
+  Serial.println("STA Failed to configure");
+}
 ```
 
-### **3. Cek Static IP di ESP32:**
-```cpp
-// File: IOT/PBL/src/main.cpp (setup function)
-IPAddress local_IP(192, 168, 73, 200);    ✅
-IPAddress gateway(192, 168, 73, 129);     ✅
-IPAddress subnet(255, 255, 255, 192);     ✅
-```
-
-### **4. Cek ESP32 IP di Web App:**
+### **3. Web App (iot-auth/page.tsx):**
 ```typescript
 // File: src/app/(user)/iot-auth/page.tsx
-const [esp32Ip, setEsp32Ip] = useState("192.168.73.200");  ✅
+const [esp32Ip, setEsp32Ip] = useState("192.168.1.200");  ✅
 ```
 
 ---
 
-## 🧪 **Testing Steps**
+## ✅ Verification Steps
 
-### **1. Upload ESP32:**
-```
-1. Buka Arduino IDE
-2. File: IOT/PBL/src/main.cpp
-3. Klik Upload (Ctrl+U)
-4. Tunggu sampai selesai
+### **1. Check Laptop IP:**
+```cmd
+ipconfig
 ```
 
-### **2. Cek Serial Monitor:**
+Expected output:
 ```
-✅ WiFi Connected!
-IP Address: 192.168.73.200
-⚠️ PENTING: IP ini harus sama dengan esp32Ip di web app!
-
-[HTTP] Server started on port 80
-[HTTP] Access at: http://192.168.73.200
+IPv4 Address: 192.168.1.7
 ```
 
-### **3. Test ESP32 HTTP Server:**
-```
-Browser → http://192.168.73.200/
-Expected: ✅ "🤖 IoT Bank Sampah"
-```
-
-### **4. Start Web App:**
+### **2. Start Next.js:**
 ```bash
 npm run dev
 ```
 
-### **5. Test dari HP:**
+Expected output:
 ```
-1. Connect HP ke WiFi "JTI-POLINEMA-2G"
+✅ WiFi Connected!
+IP Address: 192.168.1.200
+
+⚠️ PENTING: IP ini harus sama dengan esp32Ip di web app!
+
+[HTTP] Server started on port 80
+[HTTP] Access at: http://192.168.1.200
+```
+
+### **3. Test ESP32 HTTP Server:**
+```
+Browser → http://192.168.1.200/
+
+Expected: ✅ "🤖 IoT Bank Sampah"
+```
+
+### **4. Test Full Flow dari HP:**
+```
+1. Connect HP ke WiFi yang sama
 2. Buka browser di HP
-3. Akses: http://192.168.73.134:3000/iot-auth?device=ESP32-BOTOL-01
+3. Akses: http://192.168.1.7:3000/iot-auth?device=ESP32-BOTOL-01
 4. Login/Register
 5. QR code akan muncul
-6. Scan QR code
-7. Expected: ✅ "Login Berhasil!"
-8. ESP32 LCD: ✅ "HELLO! [Nama User]"
+6. Scan dengan HP (bukan kamera ESP32!)
+7. ESP32 akan menerima token dan login otomatis
 ```
 
 ---
 
-## 🐛 **Troubleshooting**
+## 🐛 Troubleshooting
 
-### **Problem: ESP32 tidak connect WiFi**
+### **Problem: ESP32 tidak connect ke WiFi**
 **Solusi:**
-- Pastikan SSID dan password benar
-- Pastikan WiFi 2.4GHz (ESP32 tidak support 5GHz)
+- Check SSID dan password benar
+- Check WiFi 2.4GHz (bukan 5GHz)
+- Restart ESP32
 - Check Serial Monitor untuk error message
 
-### **Problem: IP ESP32 berbeda dari 192.168.73.200**
+### **Problem: IP ESP32 berbeda dari 192.168.1.200**
 **Solusi:**
 - Check Static IP configuration di setup()
 - Restart ESP32
-- Check Serial Monitor: "⚠️ Static IP configuration failed!"
+- Update esp32Ip di web app sesuai IP yang muncul
 
-### **Problem: Web app tidak bisa diakses dari HP**
+### **Problem: Web app tidak accessible dari HP**
 **Solusi:**
-- Pastikan HP dan laptop di WiFi yang SAMA
-- Pastikan firewall tidak block port 3000
-- Test dari browser laptop dulu: http://localhost:3000
+- HP harus connect ke WiFi yang sama
+- Check firewall allow port 3000
+- Jalankan npm run dev dengan -H 0.0.0.0
+- Test di browser laptop dulu: http://192.168.1.7:3000
 
 ### **Problem: QR Login gagal**
 **Solusi:**
-- Test ESP32 HTTP server: http://192.168.73.200/
+- Test ESP32 HTTP server: http://192.168.1.200/
 - Check Serial Monitor ESP32 untuk error
-- Pastikan ESP32 IP di web app = 192.168.73.200
+- Pastikan ESP32 IP di web app = 192.168.1.200
 
 ---
 
-## 📊 **Network Diagram**
+## 🌍 Network Topology
 
 ```
-┌─────────────────────────────┐
-│    WiFi Router              │
-│    "JTI-POLINEMA-2G"        │
-│    Gateway: 192.168.73.129  │
-└──────────┬──────────────────┘
+┌────────────────────────────┐
+│    WiFi Router             │
+│    Gateway: 192.168.1.1    │
+└──────────┬─────────────────┘
            │
-           ├─────────────────────────┐
-           │                         │
+           │
     ┌──────▼──────┐          ┌──────▼─────┐
     │   Laptop    │          │   ESP32    │
-    │ 192.168.73  │          │ 192.168.73 │
-    │    .134     │          │    .200    │
+    │ 192.168.1   │          │ 192.168.1  │
+    │    .7       │          │    .200    │
     │             │          │            │
-    │ Web App     │          │ HTTP       │
-    │ :3000       │          │ Server :80 │
+    │  Next.js    │◄─────────┤ HTTP       │
+    │  :3000      │  API     │ Client     │
     └─────────────┘          └────────────┘
+           ▲                        ▲
+           │                        │
+           │                        │
+    ┌──────┴────────┐               │
+    │  HP Browser   │               │
+    │  (Scan QR)    │───────────────┘
+    └───────────────┘
+       Via WiFi
 ```
 
 ---
 
-## 📝 **Summary Checklist**
+## ✅ Quick Reference
 
-- [x] WiFi SSID: `JTI-POLINEMA-2G` ✅
-- [x] WiFi Password: `jtifast!` ✅
-- [x] Laptop IP: `192.168.73.134` ✅
-- [x] ESP32 Static IP: `192.168.73.200` ✅
-- [x] Gateway: `192.168.73.129` ✅
-- [x] Subnet: `255.255.255.192` ✅
-- [x] API Endpoint: `http://192.168.73.134:3000/api/iot/get-user` ✅
-- [x] ESP32 IP di Web App: `192.168.73.200` ✅
+- [x] WiFi Gateway: `192.168.1.1` ✅
+- [x] Laptop IP: `192.168.1.7` ✅
+- [x] ESP32 Static IP: `192.168.1.200` ✅
+- [x] Subnet: `255.255.255.0` ✅
+- [x] API Endpoint: `http://192.168.1.7:3000/api/iot/get-user` ✅
+- [x] ESP32 IP di Web App: `192.168.1.200` ✅
 
-**Status: ✅ SEMUA KONFIGURASI SUDAH SESUAI!**
+**Status: ✅ KONFIGURASI UPDATED!**
 
 ---
 
-## 🚀 **Next Steps**
+## 🚀 Ready to Test!
 
-1. Upload kode ESP32
-2. Test HTTP server ESP32
-3. Start web app (npm run dev)
-4. Test QR login dari HP
-5. Test transaksi botol
-
-**Siap untuk testing!** 🎉
+Sekarang Anda bisa:
+1. Upload code ke ESP32
+2. Start Next.js: `npm run dev`
+3. Test dari HP: `http://192.168.1.7:3000/iot-auth`
+4. Scan QR & enjoy! 🎉

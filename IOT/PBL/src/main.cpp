@@ -9,8 +9,8 @@
 #include <HX711.h>      // ← TAMBAHAN: Library untuk load cell
 
 // --- KONFIGURASI WIFI & SUPABASE ---
-const char* ssid = "JTI-POLINEMA-2G";
-const char* password = "jtifast!";
+const char* ssid = "MERA";
+const char* password = "anakmama27";
 const char* supabase_url = "https://dsdtxqpzofrvzxpyktoo.supabase.co";
 const char* supabase_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRzZHR4cXB6b2Zydnp4cHlrdG9vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyODUxODAsImV4cCI6MjA5Mjg2MTE4MH0.lX5Y9VvXpDhL2dkem4uRLDFL36CPmAGGCo7c3MxOeVk";
 const char* device_id = "ESP32-BOTOL-01";
@@ -25,8 +25,8 @@ const char* default_user_id = "9db3ac82-dc1c-4f28-abe2-a8482986735f";
 
 // ⚠️ PENTING: Ganti dengan URL production atau IP lokal yang benar!
 // Production: "https://your-domain.vercel.app/api/iot/get-user"
-// Local: "http://192.168.73.134:3000/api/iot/get-user"
-const char* api_get_user = "http://192.168.73.134:3000/api/iot/get-user";
+// Local: "http://192.168.1.7:3000/api/iot/get-user"
+const char* api_get_user = "http://192.168.1.7:3000/api/iot/get-user";
 
 // Session variables
 String session_token = "";
@@ -510,28 +510,65 @@ void handleNotFound() {
 
 void setup() {
   Serial.begin(115200);
+  delay(1000);
   
-  // Setup WiFi dengan Static IP (agar IP tidak berubah)
-  IPAddress local_IP(192, 168, 73, 150);      // IP untuk ESP32 (dalam range 129-190, BERBEDA dari laptop 134!)
-  IPAddress gateway(192, 168, 73, 129);       // Wajib disamakan dengan Default Gateway Wi-Fi laptop
-  IPAddress subnet(255, 255, 255, 192);       // Wajib disamakan dengan Subnet Mask Wi-Fi
-  IPAddress primaryDNS(8, 8, 8, 8);           // Google DNS
-  IPAddress secondaryDNS(8, 8, 4, 4);         // Google DNS
-  // Configure static IPes
-  if (!WiFi.config(local_IP, gateway, subnet, primaryDNS, secondaryDNS)) {
-    Serial.println("⚠️ Static IP configuration failed!");
-  }
+  // ============================================
+  // SETUP WIFI DENGAN DHCP (DYNAMIC IP)
+  // ============================================
+  Serial.println("\n🔧 Setting up WiFi with DHCP...");
+  Serial.println("   (IP akan otomatis dari router)");
+  
+  // Connect to WiFi
+  Serial.println("\n🔄 Connecting to WiFi...");
+  Serial.print("   SSID: ");
+  Serial.println(ssid);
   
   WiFi.begin(ssid, password);
-  Serial.print("Connecting WiFi");
-  while (WiFi.status() != WL_CONNECTED) {
+  
+  int attempts = 0;
+  Serial.print("   Progress: ");
+  while (WiFi.status() != WL_CONNECTED && attempts < 30) {
     delay(500); 
     Serial.print(".");
+    attempts++;
   }
-  Serial.println("\n✅ WiFi Connected!");
-  Serial.print("IP Address: ");
-  Serial.println(WiFi.localIP());
-  Serial.println("⚠️ PENTING: IP ini harus sama dengan esp32Ip di web app!");
+  
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.println("\n\n✅ WiFi Connected!");
+    Serial.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    Serial.print("📡 SSID:           ");
+    Serial.println(WiFi.SSID());
+    Serial.print("🌐 IP Address:     ");
+    Serial.println(WiFi.localIP());
+    Serial.print("🚪 Gateway:        ");
+    Serial.println(WiFi.gatewayIP());
+    Serial.print("🔢 Subnet:         ");
+    Serial.println(WiFi.subnetMask());
+    Serial.print("📶 Signal:         ");
+    Serial.print(WiFi.RSSI());
+    Serial.println(" dBm");
+    Serial.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    Serial.println("\n⚠️  PENTING: Copy IP di atas dan update di web app!");
+    Serial.println("   File: src/app/(user)/iot-auth/page.tsx");
+    Serial.print("   Ganti esp32Ip = \"");
+    Serial.print(WiFi.localIP());
+    Serial.println("\"");
+    Serial.println();
+  } else {
+    Serial.println("\n\n❌ WiFi Connection Failed!");
+    Serial.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    Serial.println("💡 Troubleshooting:");
+    Serial.println("   1. Check SSID & password benar");
+    Serial.println("   2. Pastikan WiFi adalah 2.4GHz (bukan 5GHz)");
+    Serial.println("   3. Restart ESP32 dan coba lagi");
+    Serial.println("   4. Check router bisa assign IP (DHCP enabled)");
+    Serial.println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
+    
+    // Halt execution
+    while (true) {
+      delay(1000);
+    }
+  }
   
   pinMode(PIN_TRIG_HEIGHT, OUTPUT);
   pinMode(PIN_ECHO_HEIGHT, INPUT);       // ← Ubah dari INPUT_PULLDOWN ke INPUT

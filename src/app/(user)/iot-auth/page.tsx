@@ -14,7 +14,42 @@ export default function IotAuthPage() {
   // Generate session token - fixed hydration issue
   const [sessionToken, setSessionToken] = useState("");
   const [qrCodeUrl, setQrCodeUrl] = useState("");
-  const [esp32Ip, setEsp32Ip] = useState("192.168.73.150"); // IP ESP32 static (dalam range subnet!)
+  
+  // ESP32 IP with localStorage persistence
+  const [esp32Ip, setEsp32Ip] = useState(() => {
+    // Load from localStorage if available (client-side only)
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('esp32Ip') || "192.168.1.100"; // Default fallback
+    }
+    return "192.168.1.100";
+  });
+  
+  const [isEditingIp, setIsEditingIp] = useState(false);
+  const [tempIp, setTempIp] = useState(esp32Ip);
+  
+  // Save ESP32 IP to localStorage
+  const saveEsp32Ip = (newIp: string) => {
+    setEsp32Ip(newIp);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('esp32Ip', newIp);
+    }
+    setIsEditingIp(false);
+  };
+  
+  // Handle IP update
+  const handleIpUpdate = () => {
+    // Validate IP format (basic)
+    const ipPattern = /^(\d{1,3}\.){3}\d{1,3}$/;
+    if (ipPattern.test(tempIp)) {
+      saveEsp32Ip(tempIp);
+      // Regenerate QR code with new IP if session exists
+      if (sessionToken) {
+        generateQrCode(sessionToken);
+      }
+    } else {
+      alert("Invalid IP format! Use format: 192.168.1.XXX");
+    }
+  };
   
   useEffect(() => {
     // Generate token only on client side to avoid hydration mismatch
@@ -254,10 +289,62 @@ export default function IotAuthPage() {
           )}
           
           <div className="bg-blue-50 dark:bg-blue-900/30 rounded-lg p-4 mb-4">
-            <p className="text-sm text-blue-800 dark:text-blue-300">
+            <p className="text-sm text-blue-800 dark:text-blue-300 mb-2">
               <strong>Device:</strong> {deviceId}
             </p>
-            <p className="text-xs text-blue-700 dark:text-blue-400 mt-2">
+            
+            {/* ESP32 IP Configuration */}
+            <div className="mt-3 pt-3 border-t border-blue-200 dark:border-blue-700">
+              <p className="text-xs text-blue-700 dark:text-blue-400 mb-2">
+                <strong>ESP32 IP Address:</strong>
+              </p>
+              {!isEditingIp ? (
+                <div className="flex items-center justify-between bg-white dark:bg-slate-800 rounded px-3 py-2">
+                  <code className="text-sm text-blue-900 dark:text-blue-200">{esp32Ip}</code>
+                  <button
+                    onClick={() => {
+                      setTempIp(esp32Ip);
+                      setIsEditingIp(true);
+                    }}
+                    className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 ml-2"
+                  >
+                    ✏️ Edit
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <input
+                    type="text"
+                    value={tempIp}
+                    onChange={(e) => setTempIp(e.target.value)}
+                    placeholder="192.168.1.XXX"
+                    className="w-full px-3 py-2 text-sm border rounded bg-white dark:bg-slate-700 text-gray-900 dark:text-white"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleIpUpdate}
+                      className="flex-1 text-xs bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded"
+                    >
+                      ✓ Save
+                    </button>
+                    <button
+                      onClick={() => {
+                        setTempIp(esp32Ip);
+                        setIsEditingIp(false);
+                      }}
+                      className="flex-1 text-xs bg-gray-500 hover:bg-gray-600 text-white px-3 py-2 rounded"
+                    >
+                      ✗ Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+              <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
+                💡 Get IP from ESP32 Serial Monitor
+              </p>
+            </div>
+            
+            <p className="text-xs text-blue-700 dark:text-blue-400 mt-3">
               Setelah scan, HP akan otomatis kirim data ke device
             </p>
           </div>
