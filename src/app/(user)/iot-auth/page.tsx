@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useSearchParams, useRouter } from "next/navigation";
 import QRCode from "qrcode";
 
-export default function IotAuthPage() {
+function IotAuthContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const deviceId = searchParams.get("device") || "ESP32-BOTOL-01";
@@ -461,5 +461,22 @@ export default function IotAuthPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function IotAuthPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50 dark:from-slate-900 dark:to-slate-800">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600 dark:text-gray-300">Loading...</p>
+          </div>
+        </div>
+      }
+    >
+      <IotAuthContent />
+    </Suspense>
   );
 }
