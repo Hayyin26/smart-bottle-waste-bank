@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   ArrowRight,
   Eye,
@@ -71,6 +71,7 @@ function AuthInput({
           {icon}
         </span>
         <input
+          suppressHydrationWarning
           className={cn(
             "h-12 w-full rounded-2xl border border-slate-200 bg-white pl-12 pr-12 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100",
             error && "border-rose-300 focus:border-rose-500 focus:ring-rose-100",
@@ -90,6 +91,7 @@ function AuthInput({
 export function AuthView({ mode, requiredRole }: { mode: AuthMode; requiredRole?: 'admin' | 'user' }) {
   const router = useRouter();
   const copy = authCopy[mode];
+  const [mounted, setMounted] = useState(false);
   const [values, setValues] = useState<FormValues>({
     email: "",
     password: "",

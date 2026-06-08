@@ -14,7 +14,7 @@ export default function IotAuthPage() {
   // Generate session token - fixed hydration issue
   const [sessionToken, setSessionToken] = useState("");
   const [qrCodeUrl, setQrCodeUrl] = useState("");
-  const [esp32Ip, setEsp32Ip] = useState("192.168.100.87"); // IP ESP32 untuk QR code
+  const [esp32Ip, setEsp32Ip] = useState("192.168.73.150"); // IP ESP32 static (dalam range subnet!)
   
   useEffect(() => {
     // Generate token only on client side to avoid hydration mismatch
@@ -56,8 +56,14 @@ export default function IotAuthPage() {
       // Check if sessionToken is ready
       if (!sessionToken) {
         // Token belum ready, tunggu sebentar
+        console.log("[IoT Auth] Session token not ready yet");
         return;
       }
+      
+      console.log("[IoT Auth] Saving session to database...");
+      console.log("[IoT Auth] Token:", sessionToken);
+      console.log("[IoT Auth] User ID:", userId);
+      console.log("[IoT Auth] Device ID:", deviceId);
       
       // Save session to database for IoT to read
       const { error } = await supabase
@@ -66,14 +72,20 @@ export default function IotAuthPage() {
           session_token: sessionToken,
           user_id: userId,
           device_id: deviceId,
-          expires_at: new Date(Date.now() + 5 * 60 * 1000).toISOString(), // 5 minutes
+          expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(), // 60 minutes (1 hour)
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error("[IoT Auth] Error saving session:", error);
+        throw error;
+      }
+      
+      console.log("[IoT Auth] ✅ Session saved successfully!");
 
       // Generate QR code for auto-login
       try {
         const qrData = `http://${esp32Ip}/set-token?token=${sessionToken}&device=${deviceId}`;
+        console.log("[IoT Auth] QR Code URL:", qrData);
         const qrImage = await QRCode.toDataURL(qrData, {
           width: 300,
           margin: 2,
@@ -286,7 +298,7 @@ export default function IotAuthPage() {
           </div>
           
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-4">
-            Sesi akan berakhir dalam 5 menit atau setelah transaksi selesai.
+            Sesi akan berakhir dalam 1 jam atau setelah transaksi selesai.
           </p>
         </div>
       </div>

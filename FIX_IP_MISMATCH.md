@@ -2,7 +2,7 @@
 
 ## ❌ **Masalah:**
 
-IP ESP32 **berubah** dari `192.168.100.53` menjadi `192.168.100.87`
+IP ESP32 **berubah-ubah** karena DHCP dinamis
 
 **Penyebab:**
 - Router memberikan IP dinamis (DHCP)
@@ -20,7 +20,7 @@ IP ESP32 **berubah** dari `192.168.100.53` menjadi `192.168.100.87`
 
 ### **Sudah Diimplementasikan!**
 
-ESP32 sekarang menggunakan **Static IP: `192.168.100.87`**
+ESP32 sekarang menggunakan **Static IP: `10.21.152.155`**
 
 IP ini **tidak akan berubah** lagi! ✅
 
@@ -31,8 +31,8 @@ IP ini **tidak akan berubah** lagi! ✅
 ### **Di ESP32 Code:**
 ```cpp
 // Static IP Configuration
-IPAddress local_IP(192, 168, 100, 87);      // IP ESP32
-IPAddress gateway(192, 168, 100, 1);        // Gateway router
+IPAddress local_IP(10, 21, 152, 155);       // IP ESP32
+IPAddress gateway(10, 21, 152, 145);        // Gateway router
 IPAddress subnet(255, 255, 255, 0);         // Subnet mask
 IPAddress primaryDNS(8, 8, 8, 8);           // Google DNS
 IPAddress secondaryDNS(8, 8, 4, 4);         // Google DNS
@@ -43,7 +43,7 @@ WiFi.begin(ssid, password);
 
 ### **Di Web App:**
 ```typescript
-const [esp32Ip, setEsp32Ip] = useState("192.168.100.87");
+const [esp32Ip, setEsp32Ip] = useState("10.21.152.155");
 ```
 
 **Sekarang IP ESP32 dan Web App SAMA!** ✅
@@ -54,7 +54,7 @@ const [esp32Ip, setEsp32Ip] = useState("192.168.100.87");
 
 | Aspek | Dynamic IP (Lama) | Static IP (Baru) |
 |-------|-------------------|------------------|
-| **IP ESP32** | Berubah-ubah | Tetap: 192.168.100.87 |
+| **IP ESP32** | Berubah-ubah | Tetap: 10.21.152.155 |
 | **Setelah Restart** | IP baru | IP sama |
 | **QR Code** | Bisa salah | Selalu benar ✅ |
 | **Maintenance** | Ribet | Mudah ✅ |
@@ -71,21 +71,21 @@ Arduino IDE → Upload
 ### **2. Cek IP di Serial Monitor**
 ```
 ✅ WiFi Connected!
-IP Address: 192.168.100.87
+IP Address: 10.21.152.155
 ⚠️ PENTING: IP ini harus sama dengan esp32Ip di web app!
 ```
 
-**IP harus: `192.168.100.87`** ✅
+**IP harus: `10.21.152.155`** ✅
 
 ### **3. Test HTTP Server**
 ```
-Browser → http://192.168.100.87/
+Browser → http://10.21.152.155/
 Harus tampil: "🤖 IoT Bank Sampah"
 ```
 
 ### **4. Test QR Login**
 ```
-HP → http://192.168.100.87:3000/iot-auth?device=ESP32-BOTOL-01
+HP → http://10.21.152.155:3000/iot-auth?device=ESP32-BOTOL-01
 → Login
 → QR code muncul
 → Scan QR
@@ -99,17 +99,17 @@ HP → http://192.168.100.87:3000/iot-auth?device=ESP32-BOTOL-01
 ### **Cek IP ESP32:**
 ```
 Serial Monitor → Lihat saat boot:
-IP Address: 192.168.100.87
+IP Address: 10.21.152.155
 ```
 
 ### **Cek IP Komputer:**
 ```cmd
-ipconfig | findstr "192.168"
+ipconfig | findstr "10.21"
 ```
 
 ### **Cek Gateway Router:**
 ```
-Biasanya: 192.168.100.1 atau 192.168.1.1
+Gateway: 10.21.152.145 (Sesuai ipconfig)
 ```
 
 ---
