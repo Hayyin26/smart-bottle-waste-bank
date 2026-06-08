@@ -7,7 +7,12 @@ export async function GET(request: NextRequest) {
     const sessionToken = searchParams.get("token");
     const deviceId = searchParams.get("device");
 
+    console.log("[API Get User] Request received");
+    console.log("[API Get User] Token:", sessionToken);
+    console.log("[API Get User] Device:", deviceId);
+
     if (!sessionToken || !deviceId) {
+      console.log("[API Get User] Missing parameters");
       return NextResponse.json(
         { error: "Missing token or device parameter" },
         { status: 400 }
@@ -15,6 +20,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get session from database
+    console.log("[API Get User] Querying database...");
     const { data: session, error } = await supabase
       .from("iot_sessions")
       .select("user_id, expires_at")
@@ -23,15 +29,19 @@ export async function GET(request: NextRequest) {
       .single();
 
     if (error || !session) {
+      console.log("[API Get User] Session not found", error);
       return NextResponse.json(
         { error: "Session not found or expired" },
         { status: 404 }
       );
     }
 
+    console.log("[API Get User] Session found:", session);
+
     // Check if session expired
     const expiresAt = new Date(session.expires_at);
     if (expiresAt < new Date()) {
+      console.log("[API Get User] Session expired");
       // Delete expired session
       await supabase
         .from("iot_sessions")
@@ -45,6 +55,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get user profile
+    console.log("[API Get User] Getting user profile...");
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select("id, full_name, total_points")
@@ -52,12 +63,14 @@ export async function GET(request: NextRequest) {
       .single();
 
     if (profileError || !profile) {
+      console.log("[API Get User] Profile not found", profileError);
       return NextResponse.json(
         { error: "User profile not found" },
         { status: 404 }
       );
     }
 
+    console.log("[API Get User] Success! User:", profile.full_name);
     return NextResponse.json({
       user_id: profile.id,
       full_name: profile.full_name,

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -H 0.0.0.0",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
@@ -19,6 +19,7 @@
     "@supabase/supabase-js": "^2.104.1",
     "@visactor/react-vchart": "^1.13.26",
     "@visactor/vchart": "^1.13.26",
+    "axios": "^1.17.0",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",
