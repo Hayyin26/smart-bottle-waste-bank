@@ -1,6 +1,14 @@
 import { supabase } from '@/lib/supabase';
 import type { WasteUser } from '@/types/types';
 
+export type NasabahProfile = {
+  id: string;
+  full_name: string | null;
+  role?: 'admin' | 'user';
+  total_points: number;
+  updated_at?: string;
+};
+
 export async function getNasabahList(): Promise<WasteUser[]> {
   try {
     // Fetch profiles with role = 'user' only (exclude admins)
@@ -103,6 +111,30 @@ export async function createNasabah(nasabah: Omit<WasteUser, 'id'>): Promise<Was
     return null;
   } catch (error) {
     console.error('Error in createNasabah:', error);
+    return null;
+  }
+}
+
+export async function updateNasabahProfile(
+  id: string,
+  updates: Partial<NasabahProfile>,
+): Promise<NasabahProfile | null> {
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating profile:', error);
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error in updateNasabahProfile:', error);
     return null;
   }
 }

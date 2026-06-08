@@ -41,9 +41,6 @@ const generateSpec = (data: DailyActivityData[]): ILineChartSpec => {
         orient: "left",
         type: "linear",
         min: 0,
-        tick: {
-          interval: 1,
-        },
         label: {
           visible: true,
         },
