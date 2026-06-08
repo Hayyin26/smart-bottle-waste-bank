@@ -36,6 +36,25 @@ function IotAuthContent() {
     setIsEditingIp(false);
   };
   
+  // Generate QR code helper function
+  const generateQrCode = async (token: string) => {
+    try {
+      const qrData = `http://${esp32Ip}/set-token?token=${token}&device=${deviceId}`;
+      console.log("[IoT Auth] QR Code URL:", qrData);
+      const qrImage = await QRCode.toDataURL(qrData, {
+        width: 300,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        }
+      });
+      setQrCodeUrl(qrImage);
+    } catch (qrError) {
+      console.error("QR Code generation error:", qrError);
+    }
+  };
+
   // Handle IP update
   const handleIpUpdate = () => {
     // Validate IP format (basic)
@@ -118,21 +137,7 @@ function IotAuthContent() {
       console.log("[IoT Auth] ✅ Session saved successfully!");
 
       // Generate QR code for auto-login
-      try {
-        const qrData = `http://${esp32Ip}/set-token?token=${sessionToken}&device=${deviceId}`;
-        console.log("[IoT Auth] QR Code URL:", qrData);
-        const qrImage = await QRCode.toDataURL(qrData, {
-          width: 300,
-          margin: 2,
-          color: {
-            dark: '#000000',
-            light: '#FFFFFF'
-          }
-        });
-        setQrCodeUrl(qrImage);
-      } catch (qrError) {
-        console.error("QR Code generation error:", qrError);
-      }
+      await generateQrCode(sessionToken);
 
       setSuccess(true);
       setError("");
