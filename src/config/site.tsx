@@ -1,4 +1,4 @@
-import { Gauge, type LucideIcon, Trash2, Users, BarChart3, Settings, History, QrCode } from "lucide-react";
+import { Gauge, type LucideIcon, Trash2, Users, BarChart3, History, QrCode, Database } from "lucide-react";
 
 export type SiteConfig = typeof siteConfig;
 export type Navigation = {
@@ -42,5 +42,10 @@ export const navigations: Navigation[] = [
     icon: BarChart3,
     name: "Laporan",
     href: "/laporan",
+  },
+  {
+    icon: Database,
+    name: "Hadoop",
+    href: "/hadoop",
   },
 ];

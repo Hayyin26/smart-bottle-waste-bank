@@ -170,7 +170,7 @@ function IotAuthContent() {
           session_token: sessionToken,
           user_id: userId,
           device_id: deviceId,
-          expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(), // 60 minutes (1 hour)
+          expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days
         });
 
       if (error) {

@@ -1,157 +1,125 @@
-# 🚀 Hadoop Quick Start Guide
+# ⚡ Hadoop Quick Start - Tampilkan di Web
 
-## Setup Cepat dalam 5 Langkah
+## 🎯 3 Langkah Cepat
 
-### 1️⃣ Install Java
-```cmd
-# Download Java JDK 11 dari: https://adoptium.net/
-# Install, lalu set environment:
-setx JAVA_HOME "C:\Program Files\Eclipse Adoptium\jdk-11.0.x"
-setx PATH "%PATH%;%JAVA_HOME%\bin"
+### **1. Start Hadoop Services**
+
+Double-click file:
+```
+start-hadoop.cmd
 ```
 
-Verify:
-```cmd
-java -version
+✅ Browser akan otomatis buka ke: http://localhost:9870
+
+---
+
+### **2. Akses Native Hadoop UI**
+
+Buka browser:
+- **HDFS:** http://localhost:9870
+- **YARN:** http://localhost:8088
+
+---
+
+### **3. Akses Custom Dashboard (Next.js)**
+
+```bash
+# Start Next.js dev server
+npm run dev
 ```
 
-### 2️⃣ Install Hadoop
-```cmd
-# 1. Download Hadoop 3.3.6: https://hadoop.apache.org/releases.html
-# 2. Extract ke: C:\hadoop-3.3.6
-# 3. Download winutils: https://github.com/cdarlint/winutils
-# 4. Copy winutils.exe dan hadoop.dll ke: C:\hadoop-3.3.6\bin\
+Buka browser:
+```
+http://localhost:3000/hadoop
 ```
 
-Set environment:
+---
+
+## 🖼️ Preview
+
+### **Native Hadoop UI** (http://localhost:9870)
+![image](https://user-images.githubusercontent.com/placeholder/hadoop-ui.png)
+
+**Fitur:**
+- 📊 Cluster overview
+- 📁 Browse file system (klik: Utilities → Browse)
+- 📈 Storage metrics
+- 🖥️ DataNodes status
+
+### **Custom Dashboard** (http://localhost:3000/hadoop)
+![image](https://user-images.githubusercontent.com/placeholder/custom-dashboard.png)
+
+**Fitur:**
+- ✅ Cluster status (online/offline)
+- 💾 Storage usage (progress bar)
+- 📁 File browser dengan navigasi
+- 🔗 Quick links ke native UI
+- 🔄 Refresh button
+
+---
+
+## 🧪 Testing
+
+### **Check Services Running:**
 ```cmd
-setx HADOOP_HOME "C:\hadoop-3.3.6"
-setx PATH "%PATH%;%HADOOP_HOME%\bin;%HADOOP_HOME%\sbin"
+jps
 ```
 
-### 3️⃣ Konfigurasi Hadoop
+**Expected:**
+```
+12345 NameNode     ✅
+67890 DataNode     ✅
+11111 ResourceManager ✅
+22222 NodeManager  ✅
+```
 
-Copy konfigurasi dari `HADOOP_SETUP_GUIDE.md` bagian #2.
-
-File yang harus diedit:
-- `C:\hadoop-3.3.6\etc\hadoop\hadoop-env.cmd`
-- `C:\hadoop-3.3.6\etc\hadoop\core-site.xml`
-- `C:\hadoop-3.3.6\etc\hadoop\hdfs-site.xml`
-- `C:\hadoop-3.3.6\etc\hadoop\mapred-site.xml`
-- `C:\hadoop-3.3.6\etc\hadoop\yarn-site.xml`
-
-### 4️⃣ Format & Start Hadoop
-
+### **Test HDFS Command:**
 ```cmd
-# Format NameNode (HANYA SEKALI!)
-hdfs namenode -format
+hdfs dfs -ls /
+```
 
-# Start Hadoop (sebagai Administrator)
+### **Test Web UI:**
+- ✅ http://localhost:9870 → Harus tampil Hadoop UI
+- ✅ http://localhost:3000/hadoop → Harus tampil Custom Dashboard
+
+---
+
+## ❌ Troubleshooting
+
+### **Error: Cannot connect to localhost:9870**
+
+**Solusi:** Start Hadoop services
+```cmd
 cd C:\hadoop-3.3.6\sbin
 start-dfs.cmd
 start-yarn.cmd
 ```
 
-Verify:
+---
+
+### **Error: Services tidak muncul di `jps`**
+
+**Solusi:** Check `hadoop-env.cmd` sudah di-fix
 ```cmd
-jps
+hadoop version
 ```
 
-Harus melihat:
-- NameNode
-- DataNode  
-- ResourceManager
-- NodeManager
+Harus muncul:
+```
+Hadoop 3.3.6
+```
 
-Check Web UI:
-- http://localhost:9870 (HDFS)
-- http://localhost:8088 (YARN)
-
-### 5️⃣ Install Dependencies & Test
-
-```bash
-# Install npm packages
-npm install axios
-
-# Test koneksi
-npx tsx scripts/test-hadoop-connection.ts
+Kalau error, jalankan:
+```powershell
+cd "C:\Data Hayyin\Kuliah\Semester 6\PBL\smart"
+.\fix-hadoop-env-v2.ps1
 ```
 
 ---
 
-## 🎯 Usage
+### **Error: Dashboard fetch failed**
 
-### Test API dari Browser/Postman
-
-**1. Check connection:**
-```
-GET http://localhost:3000/api/hadoop/sync
-```
-
-**2. Sync data ke Hadoop:**
-```
-POST http://localhost:3000/api/hadoop/sync
-Content-Type: application/json
-
-{
-  "dataType": "transactions",
-  "timeRange": "24h"
-}
-```
-
-**3. List files:**
-```
-GET http://localhost:3000/api/hadoop/list?path=/iot-data
-```
-
-**4. Read file:**
-```
-GET http://localhost:3000/api/hadoop/read?path=/iot-data/transactions/transactions_2026-06-08.json
-```
-
-### Scheduled Sync (Backup Otomatis)
-
-Run manual:
-```bash
-npx tsx scripts/scheduled-hadoop-sync.ts
-```
-
-Setup Windows Task Scheduler untuk run otomatis setiap hari:
-1. Open Task Scheduler
-2. Create Basic Task
-3. Trigger: Daily pada waktu tertentu
-4. Action: Start a program
-   - Program: `node`
-   - Arguments: `C:\Data Hayyin\Kuliah\Semester 6\PBL\smart\node_modules\tsx\dist\cli.mjs scripts/scheduled-hadoop-sync.ts`
-   - Start in: `C:\Data Hayyin\Kuliah\Semester 6\PBL\smart`
-
----
-
-## 🛠️ Troubleshooting
-
-### ❌ "Connection refused"
-```cmd
-# Check if Hadoop running:
-jps
-
-# If not running, start:
-cd C:\hadoop-3.3.6\sbin
-start-dfs.cmd
-start-yarn.cmd
-```
-
-### ❌ "NameNode in safe mode"
-```cmd
-hdfs dfsadmin -safemode leave
-```
-
-### ❌ "Permission denied"
-```cmd
-hdfs dfs -chmod -R 777 /
-```
-
-### ❌ Test script error
-Check .env file memiliki:
+**Solusi 1:** Check `.env` file
 ```env
 HADOOP_HOST=localhost
 HADOOP_PORT=9870
@@ -160,97 +128,35 @@ HADOOP_USER=hadoop
 HADOOP_PROTOCOL=http
 ```
 
----
-
-## 📊 Monitoring
-
-### Check HDFS Status
-```cmd
-hdfs dfsadmin -report
-```
-
-### View Files
-```cmd
-hdfs dfs -ls /iot-data
-hdfs dfs -ls /iot-data/transactions
-```
-
-### View File Content
-```cmd
-hdfs dfs -cat /iot-data/transactions/transactions_2026-06-08.json
-```
-
-### Check Logs
-```
-C:\hadoop-3.3.6\logs\
-```
-
----
-
-## 🔄 Daily Workflow
-
-**Morning:**
-```cmd
-# Start Hadoop
-cd C:\hadoop-3.3.6\sbin
-start-dfs.cmd
-start-yarn.cmd
-
-# Verify
-jps
-```
-
-**During Work:**
+**Solusi 2:** Restart Next.js dev server
 ```bash
-# Develop normally
+# Kill (Ctrl+C)
 npm run dev
-
-# Data akan auto-sync via API calls
-```
-
-**Evening:**
-```bash
-# Manual backup jika perlu
-npx tsx scripts/scheduled-hadoop-sync.ts
-
-# Stop Hadoop (optional)
-cd C:\hadoop-3.3.6\sbin
-stop-yarn.cmd
-stop-dfs.cmd
 ```
 
 ---
 
-## 📚 API Endpoints
+## 📋 Checklist
 
-| Method | Endpoint | Deskripsi |
-|--------|----------|-----------|
-| GET | `/api/hadoop/sync` | Check Hadoop connection |
-| POST | `/api/hadoop/sync` | Sync data Supabase → Hadoop |
-| GET | `/api/hadoop/list?path=X` | List files di directory |
-| GET | `/api/hadoop/read?path=X` | Read file content |
-
----
-
-## ✅ Checklist Setup
-
-- [ ] Java JDK 11 installed
-- [ ] Hadoop 3.3.6 extracted
-- [ ] winutils.exe & hadoop.dll in bin/
-- [ ] Environment variables set
-- [ ] Hadoop config files edited
-- [ ] NameNode formatted
-- [ ] Hadoop services running
-- [ ] Web UI accessible (http://localhost:9870)
-- [ ] npm packages installed
-- [ ] .env configured
-- [ ] Test script passed
-- [ ] API endpoints working
+- [ ] Hadoop version berjalan: `hadoop version` ✅
+- [ ] Services running: `jps` menampilkan 4 services ✅
+- [ ] Native UI accessible: http://localhost:9870 ✅
+- [ ] YARN UI accessible: http://localhost:8088 ✅
+- [ ] `.env` file configured ✅
+- [ ] Next.js running: `npm run dev` ✅
+- [ ] Custom dashboard accessible: http://localhost:3000/hadoop ✅
 
 ---
 
-## 🎉 You're Ready!
+## 🎉 Success!
 
-Hadoop sudah siap untuk menyimpan data IoT Anda!
+Jika semua checklist ✅, Anda sudah berhasil menampilkan Hadoop di web!
 
-Next: Integrate dengan dashboard untuk visualisasi data dari Hadoop.
+**URLs:**
+- Native HDFS UI: http://localhost:9870
+- Native YARN UI: http://localhost:8088
+- Custom Dashboard: http://localhost:3000/hadoop
+
+---
+
+**Last Updated:** June 9, 2026

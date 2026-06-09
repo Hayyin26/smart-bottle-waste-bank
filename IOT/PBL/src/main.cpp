@@ -6,11 +6,10 @@
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 #include <WebServer.h>  // ← TAMBAHAN: Untuk HTTP server
-#include <HX711.h>      // ← TAMBAHAN: Library untuk load cell
 
 // --- KONFIGURASI WIFI & SUPABASE ---
-const char* ssid = "Kost Premium";
-const char* password = "kostbusripit";
+const char* ssid = "MERA";
+const char* password = "MERA";
 const char* supabase_url = "https://dsdtxqpzofrvzxpyktoo.supabase.co";
 const char* supabase_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRzZHR4cXB6b2Zydnp4cHlrdG9vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyODUxODAsImV4cCI6MjA5Mjg2MTE4MH0.lX5Y9VvXpDhL2dkem4uRLDFL36CPmAGGCo7c3MxOeVk";
 const char* device_id = "ESP32-BOTOL-01";
@@ -47,8 +46,8 @@ unsigned long lastIpRegistration = 0;
 #define PIN_BUZZER 23
 #define PIN_IR_LAMP 13
 #define PIN_METAL_SENSOR 25      // Sensor proximity metal (digital input)
-#define PIN_LOADCELL_DOUT 26     // Load cell data pin (HX711)
-#define PIN_LOADCELL_SCK 27      // Load cell clock pin (HX711)
+#define PIN_LED_GREEN 26         // ← BARU: LED hijau (botol accepted)
+#define PIN_LED_RED 27           // ← BARU: LED merah (botol rejected)
 
 // --- KONFIGURASI SERVO ---
 #define SERVO_OPEN_ANGLE 90
@@ -58,36 +57,30 @@ unsigned long lastIpRegistration = 0;
 // ⚠️ PENTING: Botol diletakkan HORIZONTAL (tidur)
 // - Sensor HEIGHT mengukur DIAMETER botol
 // - Sensor LENGTH mengukur PANJANG botol
-// - Load Cell mengukur BERAT botol (gram)
+// - TIDAK PAKAI LOAD CELL (simplified design)
 
 // Botol KECIL (contoh: botol air mineral 330ml)
-// Panjang: 15-20cm, Diameter: 5-7cm, Berat: 12.5-18g
+// Panjang: 8-13cm, Diameter: 5-11cm
 #define SMALL_HEIGHT_MIN 5      // Diameter min (sensor HEIGHT)
 #define SMALL_HEIGHT_MAX 11     // Diameter max
 #define SMALL_LENGTH_MIN 8     // Panjang min (sensor LENGTH)
 #define SMALL_LENGTH_MAX 13     // Panjang max
-#define SMALL_WEIGHT_MIN 12.5   // Berat min (gram)
-#define SMALL_WEIGHT_MAX 18.0   // Berat max (gram)
 #define SMALL_POINTS 5
 
 // Botol SEDANG (contoh: botol air mineral 600ml)
-// Panjang: 20-25cm, Diameter: 6-8cm, Berat: 20-23g
+// Panjang: 15-20cm, Diameter: 12-16cm
 #define MEDIUM_HEIGHT_MIN 12     // Diameter min (sensor HEIGHT)
 #define MEDIUM_HEIGHT_MAX 16     // Diameter max
 #define MEDIUM_LENGTH_MIN 15    // Panjang min (sensor LENGTH)
 #define MEDIUM_LENGTH_MAX 20    // Panjang max
-#define MEDIUM_WEIGHT_MIN 20.0  // Berat min (gram)
-#define MEDIUM_WEIGHT_MAX 23.0  // Berat max (gram)
 #define MEDIUM_POINTS 10
 
 // Botol BESAR (contoh: botol air mineral 1.5L)
-// Panjang: 25-35cm, Diameter: 8-11cm, Berat: 25-28g
+// Panjang: 21-30cm, Diameter: 18-22cm
 #define LARGE_HEIGHT_MIN 18      // Diameter min (sensor HEIGHT)
 #define LARGE_HEIGHT_MAX 22     // Diameter max
 #define LARGE_LENGTH_MIN 21     // Panjang min (sensor LENGTH)
 #define LARGE_LENGTH_MAX 30     // Panjang max
-#define LARGE_WEIGHT_MIN 25.0   // Berat min (gram)
-#define LARGE_WEIGHT_MAX 28.0   // Berat max (gram)
 #define LARGE_POINTS 15
 
 // Batas minimum dan maksimum keseluruhan
@@ -113,7 +106,6 @@ LiquidCrystal_I2C *lcd = nullptr;
 bool lcdConnected = false;
 Servo myservo;
 WebServer server(80);  // ← TAMBAHAN: HTTP server di port 80
-HX711 scale;           // ← TAMBAHAN: Load cell sensor
 
 enum GateState { WAIT_USER, WAIT_BOTTLE, WAIT_PASS, REJECT_HOLD };
 GateState gateState = WAIT_BOTTLE;
@@ -123,7 +115,6 @@ enum BottleSize { NONE, SMALL, MEDIUM, LARGE };
 int points = 0;
 int heightCm = -1;
 int lengthCm = -1;
-float weightGram = -1.0;        // ← TAMBAHAN: Berat botol
 bool isMetalDetected = false;   // ← TAMBAHAN: Status deteksi metal
 BottleSize currentBottleSize = NONE;
 int currentBottlePoints = 0;
@@ -132,17 +123,16 @@ unsigned long lastDecisionAt = 0;
 unsigned long lampOnUntil = 0;
 unsigned long lastSensorReadAt = 0;
 
-// --- FUNGSI KLASIFIKASI UKURAN BOTOL (BARU!) ---
-// ⚠️ WEIGHT DISABLED - Menggunakan hanya HEIGHT dan LENGTH
-BottleSize classifyBottle(int height, int length, float weight) {
-  // Validasi input (weight diabaikan untuk sementara)
+// --- FUNGSI KLASIFIKASI UKURAN BOTOL (SIMPLIFIED!) ---
+// ⚠️ HANYA menggunakan HEIGHT dan LENGTH (tanpa berat)
+BottleSize classifyBottle(int height, int length) {
+  // Validasi input
   if (height < HEIGHT_MIN_CM || height > HEIGHT_MAX_CM || 
       length < LENGTH_MIN_CM || length > LENGTH_MAX_CM) {
     return NONE;
   }
   
   // Klasifikasi berdasarkan tinggi dan panjang SAJA
-  // Weight check disabled for now
   
   // Botol KECIL
   if (height >= SMALL_HEIGHT_MIN && height < SMALL_HEIGHT_MAX && 
@@ -188,16 +178,6 @@ bool readMetalSensor() {
   // Sensor proximity metal biasanya LOW = terdeteksi, HIGH = tidak terdeteksi
   // Sesuaikan dengan jenis sensor yang digunakan
   return digitalRead(PIN_METAL_SENSOR) == LOW;
-}
-
-// --- FUNGSI BACA LOAD CELL (BARU!) ---
-float readWeight() {
-  if (scale.is_ready()) {
-    // Baca berat dalam gram (rata-rata 5 pembacaan)
-    float weight = scale.get_units(5);
-    return weight > 0 ? weight : 0;
-  }
-  return -1.0;
 }
 
 // --- FUNGSI HAPUS SESSION (BARU!) ---
@@ -426,6 +406,49 @@ void buzzShort(int count) {
   }
 }
 
+// ← BARU: Buzzer panjang untuk metal detection
+void buzzLong() {
+  digitalWrite(PIN_BUZZER, HIGH);
+  delay(500);
+  digitalWrite(PIN_BUZZER, LOW);
+}
+
+// ← BARU: Buzzer beep pattern untuk metal (3x beep cepat)
+void buzzMetalAlert() {
+  for (int i = 0; i < 3; i++) {
+    digitalWrite(PIN_BUZZER, HIGH);
+    delay(150);
+    digitalWrite(PIN_BUZZER, LOW);
+    delay(150);
+  }
+}
+
+// ← BARU: LED Control Functions
+void ledGreenOn() {
+  digitalWrite(PIN_LED_GREEN, HIGH);
+  digitalWrite(PIN_LED_RED, LOW);
+}
+
+void ledRedOn() {
+  digitalWrite(PIN_LED_GREEN, LOW);
+  digitalWrite(PIN_LED_RED, HIGH);
+}
+
+void ledAllOff() {
+  digitalWrite(PIN_LED_GREEN, LOW);
+  digitalWrite(PIN_LED_RED, LOW);
+}
+
+// ← BARU: LED blink untuk warning
+void ledRedBlink(int count) {
+  for (int i = 0; i < count; i++) {
+    digitalWrite(PIN_LED_RED, HIGH);
+    delay(200);
+    digitalWrite(PIN_LED_RED, LOW);
+    delay(200);
+  }
+}
+
 // Variabel untuk mencegah LCD berkedip
 String lastLcdLine0 = "";
 String lastLcdLine1 = "";
@@ -624,25 +647,11 @@ void setup() {
   pinMode(PIN_BUZZER, OUTPUT);
   pinMode(PIN_IR_LAMP, OUTPUT);
   pinMode(PIN_METAL_SENSOR, INPUT_PULLUP);  // ← TAMBAHAN: Metal sensor
+  pinMode(PIN_LED_GREEN, OUTPUT);          // ← BARU: LED hijau
+  pinMode(PIN_LED_RED, OUTPUT);            // ← BARU: LED merah
   
-  // ============================================
-  // SETUP LOAD CELL (BARU!)
-  // ============================================
-  Serial.println("[LoadCell] Initializing HX711...");
-  scale.begin(PIN_LOADCELL_DOUT, PIN_LOADCELL_SCK);
-  
-  // Set kalibrasi load cell
-  // ⚠️ PENTING: Nilai ini harus dikalibrasi sesuai load cell Anda!
-  // Cara kalibrasi:
-  // 1. Jalankan scale.read() tanpa beban → catat nilai (tare)
-  // 2. Letakkan beban 100g → catat nilai
-  // 3. Hitung: calibration_factor = (nilai_dengan_beban - tare) / 100
-  scale.set_scale(420.0983);  // ← Ganti dengan nilai kalibrasi Anda
-  scale.tare();               // Reset ke 0
-  
-  Serial.println("[LoadCell] ✅ HX711 Ready!");
-  Serial.print("[LoadCell] Calibration factor: ");
-  Serial.println(420.0983);
+  // Initialize LEDs (all OFF)
+  ledAllOff();
   
   // ============================================
   // SETUP LCD dengan DIAGNOSTIK (BARU!)
@@ -753,7 +762,7 @@ void setup() {
     Serial.println("  LOGOUT         - Logout and delete session");
     Serial.println("  LCD            - Test LCD display");
     Serial.println("  SCAN           - Scan I2C devices");
-    Serial.println("  TEST           - Test sensors (Height, Length, Weight)");
+    Serial.println("  TEST           - Test sensors (Height, Length, Metal)");
     gateState = WAIT_USER;
   } else {
     Serial.println("Mode: DEFAULT USER");
@@ -761,7 +770,7 @@ void setup() {
     Serial.println("Commands:");
     Serial.println("  LCD            - Test LCD display");
     Serial.println("  SCAN           - Scan I2C devices");
-    Serial.println("  TEST           - Test sensors (Height, Length, Weight)");
+    Serial.println("  TEST           - Test sensors (Height, Length, Metal)");
     gateState = WAIT_BOTTLE;
   }
   
@@ -917,11 +926,6 @@ void loop() {
       int lengthStable = readUltrasonicStableCm(PIN_TRIG_LENGTH, PIN_ECHO_LENGTH);
       Serial.printf("[Test] LENGTH (stable): %d cm\n\n", lengthStable);
       
-      // Test WEIGHT sensor
-      Serial.println("[Test] Reading WEIGHT sensor...");
-      float w = readWeight();
-      Serial.printf("[Test] WEIGHT: %.2f g\n\n", w);
-      
       // Test METAL sensor
       Serial.println("[Test] Reading METAL sensor...");
       bool metal = readMetalSensor();
@@ -931,7 +935,6 @@ void loop() {
       Serial.println("[Test] Summary:");
       Serial.printf("  Height: %d cm\n", heightStable);
       Serial.printf("  Length: %d cm\n", lengthStable);
-      Serial.printf("  Weight: %.2f g\n", w);
       Serial.printf("  Metal: %s\n", metal ? "YES" : "NO");
       Serial.println("=================================");
       
@@ -1012,22 +1015,28 @@ void loop() {
     if (bottlePresent && (millis() - lastDecisionAt > DECISION_COOLDOWN_MS)) {
       // CEK LOGAM TERLEBIH DAHULU
       if (isMetalDetected) {
+        ledRedOn();          // ← BARU: LED merah ON
         closeGate();
-        buzzShort(3);  // 3x buzz = warning
+        buzzMetalAlert();    // ← BARU: 3x beep cepat untuk warning metal
         lcdPrintLine(0, "BOTOL CACAT");
         lcdPrintLine(1, "ADA LOGAM");
         lastDisplayedState = REJECT_HOLD;
         
         Serial.println("[Metal] ⚠️ LOGAM TERDETEKSI - REJECT");
         
+        delay(1000);
+        ledRedBlink(5);      // ← BARU: Blink 5x untuk strong warning
+        ledAllOff();         // ← BARU: Matikan LED
+        
         gateState = REJECT_HOLD;
         stateStartedAt = millis();
       } else {
         // Klasifikasi ukuran botol
-        currentBottleSize = classifyBottle(heightCm, lengthCm, weightGram);
+        currentBottleSize = classifyBottle(heightCm, lengthCm);
         currentBottlePoints = getBottlePoints(currentBottleSize);
         
         if (currentBottleSize != NONE) {
+          ledGreenOn();      // ← BARU: LED hijau ON (botol accepted)
           openGate();
           buzzShort(1);
           
@@ -1043,6 +1052,7 @@ void loop() {
           gateState = WAIT_PASS;
           stateStartedAt = millis();
         } else {
+          ledRedOn();        // ← BARU: LED merah ON (botol rejected)
           closeGate();
           buzzShort(2);
           lcdPrintLine(0, "UKURAN SALAH");
@@ -1050,6 +1060,10 @@ void loop() {
           lastDisplayedState = REJECT_HOLD; // Update state
           
           Serial.println("[Bottle] REJECTED - Height: " + String(heightCm) + "cm, Length: " + String(lengthCm) + "cm");
+          
+          delay(1000);
+          ledRedBlink(3);    // ← BARU: Blink 3x untuk warning
+          ledAllOff();       // ← BARU: Matikan LED
           
           gateState = REJECT_HOLD;
           stateStartedAt = millis();
@@ -1081,6 +1095,8 @@ void loop() {
       lcdPrintLine(0, "SUCCESS!");
       lcdPrintLine(1, sizeName + " " + String(currentBottlePoints) + "PT");
       delay(1000);
+      
+      ledAllOff();           // ← BARU: Matikan LED setelah transaksi selesai
       
       // Auto-logout setelah transaksi (untuk keamanan)
       if (USE_QR_LOGIN && current_user_id.length() > 0) {
