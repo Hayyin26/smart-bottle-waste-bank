@@ -15,17 +15,61 @@ function IotAuthContent() {
   const [sessionToken, setSessionToken] = useState("");
   const [qrCodeUrl, setQrCodeUrl] = useState("");
   
-  // ESP32 IP with localStorage persistence
+  // ESP32 IP with auto-discovery from server
   const [esp32Ip, setEsp32Ip] = useState(() => {
     // Load from localStorage if available (client-side only)
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('esp32Ip') || "192.168.1.100"; // Default fallback
+      return localStorage.getItem('esp32Ip') || "";
     }
-    return "192.168.1.100";
+    return "";
   });
   
   const [isEditingIp, setIsEditingIp] = useState(false);
   const [tempIp, setTempIp] = useState(esp32Ip);
+  const [isLoadingIp, setIsLoadingIp] = useState(false);
+  const [ipFetchError, setIpFetchError] = useState("");
+  
+  // Auto-fetch ESP32 IP from server
+  const fetchEsp32Ip = async () => {
+    setIsLoadingIp(true);
+    setIpFetchError("");
+    
+    try {
+      const response = await fetch(`/api/iot/register-device?device=${deviceId}`);
+      const data = await response.json();
+      
+      if (response.ok && data.ip_address) {
+        console.log("[IoT Auth] ✅ Auto-discovered ESP32 IP:", data.ip_address);
+        setEsp32Ip(data.ip_address);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('esp32Ip', data.ip_address);
+        }
+        
+        // Show online status
+        if (data.is_online) {
+          console.log("[IoT Auth] Device is online!");
+        } else {
+          console.log("[IoT Auth] ⚠️ Device last seen:", data.last_seen);
+          setIpFetchError("Device offline. Last seen: " + new Date(data.last_seen).toLocaleString());
+        }
+      } else {
+        console.log("[IoT Auth] ⚠️ Device not found, using manual IP");
+        setIpFetchError("Device not registered yet. Please enter IP manually.");
+      }
+    } catch (error) {
+      console.error("[IoT Auth] Error fetching IP:", error);
+      setIpFetchError("Failed to fetch device IP. Please enter manually.");
+    } finally {
+      setIsLoadingIp(false);
+    }
+  };
+  
+  // Fetch IP on mount
+  useEffect(() => {
+    if (!esp32Ip) {
+      fetchEsp32Ip();
+    }
+  }, []);
   
   // Save ESP32 IP to localStorage
   const saveEsp32Ip = (newIp: string) => {
@@ -303,20 +347,63 @@ function IotAuthContent() {
               <p className="text-xs text-blue-700 dark:text-blue-400 mb-2">
                 <strong>ESP32 IP Address:</strong>
               </p>
-              {!isEditingIp ? (
+              
+              {isLoadingIp && (
+                <div className="bg-white dark:bg-slate-800 rounded px-3 py-2 text-center">
+                  <p className="text-xs text-gray-600 dark:text-gray-400">
+                    🔍 Auto-discovering device...
+                  </p>
+                </div>
+              )}
+              
+              {!isLoadingIp && !isEditingIp && esp32Ip && (
                 <div className="flex items-center justify-between bg-white dark:bg-slate-800 rounded px-3 py-2">
                   <code className="text-sm text-blue-900 dark:text-blue-200">{esp32Ip}</code>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        setTempIp(esp32Ip);
+                        setIsEditingIp(true);
+                      }}
+                      className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400"
+                    >
+                      ✏️ Edit
+                    </button>
+                    <button
+                      onClick={fetchEsp32Ip}
+                      className="text-xs text-green-600 hover:text-green-700 dark:text-green-400"
+                      title="Refresh IP from server"
+                    >
+                      🔄
+                    </button>
+                  </div>
+                </div>
+              )}
+              
+              {!isLoadingIp && !isEditingIp && !esp32Ip && (
+                <div className="bg-yellow-50 dark:bg-yellow-900/30 rounded px-3 py-2">
+                  <p className="text-xs text-yellow-800 dark:text-yellow-300 mb-2">
+                    Device not found. Please enter IP manually:
+                  </p>
                   <button
                     onClick={() => {
-                      setTempIp(esp32Ip);
+                      setTempIp("");
                       setIsEditingIp(true);
                     }}
-                    className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 ml-2"
+                    className="text-xs bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1 rounded"
                   >
-                    ✏️ Edit
+                    ➕ Enter IP Manually
                   </button>
                 </div>
-              ) : (
+              )}
+              
+              {ipFetchError && (
+                <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
+                  ⚠️ {ipFetchError}
+                </p>
+              )}
+              
+              {isEditingIp && (
                 <div className="space-y-2">
                   <input
                     type="text"
@@ -345,7 +432,7 @@ function IotAuthContent() {
                 </div>
               )}
               <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
-                💡 Get IP from ESP32 Serial Monitor
+                💡 IP auto-updates when ESP32 connects
               </p>
             </div>
             

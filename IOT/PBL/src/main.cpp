@@ -9,8 +9,8 @@
 #include <HX711.h>      // ← TAMBAHAN: Library untuk load cell
 
 // --- KONFIGURASI WIFI & SUPABASE ---
-const char* ssid = "MERA";
-const char* password = "anakmama27";
+const char* ssid = "Kost Premium";
+const char* password = "kostbusripit";
 const char* supabase_url = "https://dsdtxqpzofrvzxpyktoo.supabase.co";
 const char* supabase_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRzZHR4cXB6b2Zydnp4cHlrdG9vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyODUxODAsImV4cCI6MjA5Mjg2MTE4MH0.lX5Y9VvXpDhL2dkem4uRLDFL36CPmAGGCo7c3MxOeVk";
 const char* device_id = "ESP32-BOTOL-01";
@@ -26,7 +26,7 @@ const char* default_user_id = "9db3ac82-dc1c-4f28-abe2-a8482986735f";
 // ⚠️ PENTING: Ganti dengan URL production atau IP lokal yang benar!
 // Production: "https://your-domain.vercel.app/api/iot/get-user"
 // Local: "http://192.168.1.7:3000/api/iot/get-user"
-const char* api_get_user = "http://192.168.1.7:3000/api/iot/get-user";
+const char* api_get_user = "https://smart-bottle-waste-bank.vercel.app/api/iot/get-user";
 
 // Session variables
 String session_token = "";
@@ -34,6 +34,9 @@ String current_user_id = "";
 String current_user_name = "";
 unsigned long lastSessionCheck = 0;
 #define SESSION_CHECK_INTERVAL 10000 // Check every 10 seconds (lebih responsif)
+
+unsigned long lastIpRegistration = 0;
+#define IP_REGISTRATION_INTERVAL 300000 // Re-register IP every 5 minutes (300000ms)
 
 // --- KONFIGURASI PIN ---
 #define PIN_TRIG_HEIGHT 4
@@ -276,6 +279,50 @@ bool getUserFromSession() {
   
   http.end();
   return false;
+}
+
+// --- FUNGSI REGISTER IP KE SERVER (BARU!) ---
+bool registerDeviceIp() {
+  if (WiFi.status() != WL_CONNECTED) {
+    Serial.println("[Register] WiFi not connected");
+    return false;
+  }
+
+  HTTPClient http;
+  String endpoint = "https://smart-bottle-waste-bank.vercel.app/api/iot/register-device";
+  
+  Serial.println("[Register] Registering device IP to server...");
+  
+  http.begin(endpoint);
+  http.addHeader("Content-Type", "application/json");
+  http.setTimeout(10000);
+  
+  String jsonPayload = "{";
+  jsonPayload += "\"device_id\":\"" + String(device_id) + "\",";
+  jsonPayload += "\"ip_address\":\"" + WiFi.localIP().toString() + "\"";
+  jsonPayload += "}";
+  
+  Serial.println("[Register] Payload: " + jsonPayload);
+  
+  int httpResponseCode = http.POST(jsonPayload);
+  
+  if (httpResponseCode == 200) {
+    Serial.println("[Register] ✅ Device IP registered successfully!");
+    String response = http.getString();
+    Serial.println("[Register] Response: " + response);
+    http.end();
+    return true;
+  } else {
+    Serial.printf("[Register] ❌ Failed! Code: %d\n", httpResponseCode);
+    if (httpResponseCode > 0) {
+      String response = http.getString();
+      Serial.println("[Register] Response: " + response);
+    } else {
+      Serial.println("[Register] Error: " + http.errorToString(httpResponseCode));
+    }
+    http.end();
+    return false;
+  }
 }
 
 // --- FUNGSI KIRIM DATA KE SUPABASE ---
@@ -736,6 +783,18 @@ void setup() {
   Serial.println("[HTTP]   GET  /set-token     → Auto-login from QR");
   Serial.println("=================================\n");
   
+  // ============================================
+  // REGISTER IP KE SERVER (BARU!)
+  // ============================================
+  Serial.println("[Register] Registering device IP to cloud...");
+  if (registerDeviceIp()) {
+    Serial.println("[Register] ✅ Device is now discoverable!");
+    Serial.println("[Register] Web app akan otomatis dapat IP ini");
+  } else {
+    Serial.println("[Register] ⚠️ Registration failed, retry in 30s...");
+  }
+  Serial.println("=================================\n");
+  
   delay(2000);
 }
 
@@ -744,6 +803,16 @@ void loop() {
   // HANDLE HTTP REQUESTS (BARU!)
   // ============================================
   server.handleClient();
+  
+  // ============================================
+  // PERIODIC IP REGISTRATION (BARU!)
+  // ============================================
+  // Re-register IP setiap 5 menit untuk keep-alive
+  if (millis() - lastIpRegistration > IP_REGISTRATION_INTERVAL) {
+    lastIpRegistration = millis();
+    Serial.println("[Loop] Re-registering device IP...");
+    registerDeviceIp();
+  }
   
   // Handle serial commands
   if (USE_QR_LOGIN && Serial.available()) {
