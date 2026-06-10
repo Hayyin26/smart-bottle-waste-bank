@@ -15,8 +15,13 @@ const path = require('path');
 
 const execPromise = util.promisify(exec);
 
-// Load environment variables
-require('dotenv').config();
+// Load environment variables (optional - for local development only)
+try {
+  require('dotenv').config();
+} catch (err) {
+  // dotenv not installed - that's OK, will use system env vars
+  console.log('[Info] dotenv not available, using system environment variables');
+}
 
 // Supabase client
 const supabase = createClient(
