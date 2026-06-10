@@ -78,11 +78,6 @@ export default function Leaderboard({ limit = 10 }: LeaderboardProps) {
               <div className="flex items-center gap-2">
                 <span className="text-2xl">{getRankBadge(index)}</span>
                 <h3 className="font-semibold text-lg">{user.full_name || 'Anonymous'}</h3>
-                {user.role === 'admin' && (
-                  <span className="inline-flex items-center rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-700 dark:bg-purple-900 dark:text-purple-300">
-                    Admin
-                  </span>
-                )}
               </div>
               <p className="text-sm text-muted-foreground mt-1">
                 Total Points: <span className="font-bold text-green-600">{user.total_points.toLocaleString()}</span>
