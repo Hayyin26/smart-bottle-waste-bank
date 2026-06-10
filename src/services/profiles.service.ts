@@ -57,6 +57,7 @@ export async function getTopUsers(limit: number = 10): Promise<Profile[]> {
   const { data, error } = await supabase
     .from('profiles')
     .select('*')
+    .eq('role', 'user')
     .order('total_points', { ascending: false })
     .limit(limit);
 

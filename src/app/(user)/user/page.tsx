@@ -129,6 +129,7 @@ export default function UserDashboard() {
     const { data, error } = await supabase
       .from("profiles")
       .select("id, full_name, total_points")
+      .eq('role', 'user')
       .order("total_points", { ascending: false })
       .limit(10);
 
@@ -153,6 +154,7 @@ export default function UserDashboard() {
       const { count } = await supabase
         .from("profiles")
         .select("*", { count: "exact", head: true })
+        .eq('role', 'user')
         .gt("total_points", profile?.total_points || 0);
       
       setUserRank((count || 0) + 1);
