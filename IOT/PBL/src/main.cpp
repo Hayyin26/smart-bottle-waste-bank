@@ -8,8 +8,14 @@
 #include <WebServer.h>  // ← TAMBAHAN: Untuk HTTP server
 
 // --- KONFIGURASI WIFI & SUPABASE ---
-const char* ssid = "MERA";
-const char* password = "MERA";
+// OPTION 1: Router WiFi (untuk production)
+// const char* ssid = "MERA";
+// const char* password = "MERA";
+
+// OPTION 2: Phone Hotspot (untuk QR login testing)
+// ⚠️ GANTI dengan nama dan password hotspot HP kamu!
+const char* ssid = "HAYYIN_HOTSPOT";        // ← GANTI INI
+const char* password = "12345678";          // ← GANTI INI
 const char* supabase_url = "https://dsdtxqpzofrvzxpyktoo.supabase.co";
 const char* supabase_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRzZHR4cXB6b2Zydnp4cHlrdG9vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyODUxODAsImV4cCI6MjA5Mjg2MTE4MH0.lX5Y9VvXpDhL2dkem4uRLDFL36CPmAGGCo7c3MxOeVk";
 const char* device_id = "ESP32-BOTOL-01";

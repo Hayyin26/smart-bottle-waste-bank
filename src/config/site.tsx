@@ -12,7 +12,8 @@ export const siteConfig = {
   description: "Sistem Manajemen Bank Sampah dengan IoT QR Code",
 };
 
-export const navigations: Navigation[] = [
+// Base navigation items
+const baseNavigations: Navigation[] = [
   {
     icon: Gauge,
     name: "Dashboard",
@@ -43,9 +44,23 @@ export const navigations: Navigation[] = [
     name: "Laporan",
     href: "/laporan",
   },
-  {
-    icon: Database,
-    name: "Hadoop",
-    href: "/hadoop",
-  },
+];
+
+// Hadoop navigation (only show if Hadoop URL is configured)
+const hadoopNavigation: Navigation = {
+  icon: Database,
+  name: "Hadoop",
+  href: "/hadoop",
+};
+
+// Conditionally include Hadoop menu
+// Only show in development OR if NEXT_PUBLIC_HADOOP_URL is set
+export const navigations: Navigation[] = [
+  ...baseNavigations,
+  // Show Hadoop if:
+  // 1. Running in development mode (localhost), OR
+  // 2. NEXT_PUBLIC_HADOOP_URL is explicitly set in production
+  ...(process.env.NODE_ENV === 'development' || process.env.NEXT_PUBLIC_HADOOP_URL
+    ? [hadoopNavigation]
+    : []),
 ];

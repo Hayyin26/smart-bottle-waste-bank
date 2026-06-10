@@ -1,0 +1,130 @@
+version: '3.8'
+
+services:
+  # ============================================
+  # Hadoop NameNode (Master Node)
+  # ============================================
+  namenode:
+    image: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
+    container_name: hadoop-namenode
+    restart: always
+    ports:
+      - "9870:9870"  # Web UI
+      - "9000:9000"  # IPC
+    environment:
+      - CLUSTER_NAME=hadoop-cluster
+      - CORE_CONF_fs_defaultFS=hdfs://namenode:9000
+      - CORE_CONF_hadoop_http_staticuser_user=root
+      - CORE_CONF_hadoop_proxyuser_hue_hosts=*
+      - CORE_CONF_hadoop_proxyuser_hue_groups=*
+      - HDFS_CONF_dfs_webhdfs_enabled=true
+      - HDFS_CONF_dfs_permissions_enabled=false
+      - HDFS_CONF_dfs_namenode_datanode_registration_ip___hostname___check=false
+    volumes:
+      - hadoop_namenode:/hadoop/dfs/name
+      - ./hadoop-data:/data  # Mount local data directory
+    networks:
+      - hadoop-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9870"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ============================================
+  # Hadoop DataNode (Worker Node)
+  # ============================================
+  datanode:
+    image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
+    container_name: hadoop-datanode
+    restart: always
+    ports:
+      - "9864:9864"  # Web UI
+    environment:
+      - CORE_CONF_fs_defaultFS=hdfs://namenode:9000
+      - CORE_CONF_hadoop_http_staticuser_user=root
+      - CORE_CONF_hadoop_proxyuser_hue_hosts=*
+      - CORE_CONF_hadoop_proxyuser_hue_groups=*
+      - HDFS_CONF_dfs_webhdfs_enabled=true
+      - HDFS_CONF_dfs_permissions_enabled=false
+    volumes:
+      - hadoop_datanode:/hadoop/dfs/data
+    networks:
+      - hadoop-network
+    depends_on:
+      - namenode
+
+  # ============================================
+  # Hadoop ResourceManager (YARN - Optional)
+  # ============================================
+  resourcemanager:
+    image: bde2020/hadoop-resourcemanager:2.0.0-hadoop3.2.1-java8
+    container_name: hadoop-resourcemanager
+    restart: always
+    ports:
+      - "8088:8088"  # Web UI
+    environment:
+      - CORE_CONF_fs_defaultFS=hdfs://namenode:9000
+      - YARN_CONF_yarn_resourcemanager_hostname=resourcemanager
+      - YARN_CONF_yarn_resourcemanager_webapp_address=0.0.0.0:8088
+    networks:
+      - hadoop-network
+    depends_on:
+      - namenode
+      - datanode
+
+  # ============================================
+  # Hadoop NodeManager (YARN - Optional)
+  # ============================================
+  nodemanager:
+    image: bde2020/hadoop-nodemanager:2.0.0-hadoop3.2.1-java8
+    container_name: hadoop-nodemanager
+    restart: always
+    ports:
+      - "8042:8042"  # Web UI
+    environment:
+      - CORE_CONF_fs_defaultFS=hdfs://namenode:9000
+      - YARN_CONF_yarn_resourcemanager_hostname=resourcemanager
+      - YARN_CONF_yarn_nodemanager_aux___services=mapreduce_shuffle
+      - YARN_CONF_yarn_nodemanager_resource_memory___mb=2048
+      - YARN_CONF_yarn_nodemanager_resource_cpu___vcores=2
+    networks:
+      - hadoop-network
+    depends_on:
+      - resourcemanager
+
+  # ============================================
+  # Hadoop History Server (Optional)
+  # ============================================
+  historyserver:
+    image: bde2020/hadoop-historyserver:2.0.0-hadoop3.2.1-java8
+    container_name: hadoop-historyserver
+    restart: always
+    ports:
+      - "8188:8188"  # Web UI
+    environment:
+      - CORE_CONF_fs_defaultFS=hdfs://namenode:9000
+    volumes:
+      - hadoop_historyserver:/hadoop/yarn/timeline
+    networks:
+      - hadoop-network
+    depends_on:
+      - namenode
+
+# ============================================
+# Volumes (Persistent Storage)
+# ============================================
+volumes:
+  hadoop_namenode:
+    driver: local
+  hadoop_datanode:
+    driver: local
+  hadoop_historyserver:
+    driver: local
+
+# ============================================
+# Networks
+# ============================================
+networks:
+  hadoop-network:
+    driver: bridge

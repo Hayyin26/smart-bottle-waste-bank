@@ -10,8 +10,10 @@ import {
   RefreshCw,
   ExternalLink,
   Database,
-  Activity
+  Activity,
+  BarChart3
 } from 'lucide-react'
+import Link from 'next/link'
 
 interface HadoopStatus {
   success: boolean
@@ -139,16 +141,25 @@ export default function HadoopMonitoringPage() {
               Monitor Hadoop HDFS cluster and IoT data storage
             </p>
           </div>
-          <button
-            onClick={() => {
-              fetchStatus()
-              fetchFiles(currentPath)
-            }}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            <RefreshCw className="w-4 h-4" />
-            Refresh
-          </button>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/hadoop/analytics"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+            >
+              <BarChart3 className="w-4 h-4" />
+              Analytics
+            </Link>
+            <button
+              onClick={() => {
+                fetchStatus()
+                fetchFiles(currentPath)
+              }}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Refresh
+            </button>
+          </div>
         </div>
       </Container>
 
