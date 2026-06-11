@@ -8,14 +8,8 @@
 #include <WebServer.h>  // ← TAMBAHAN: Untuk HTTP server
 
 // --- KONFIGURASI WIFI & SUPABASE ---
-// OPTION 1: Router WiFi (untuk production)
-// const char* ssid = "MERA";
-// const char* password = "MERA";
-
-// OPTION 2: Phone Hotspot (untuk QR login testing)
-// ⚠️ GANTI dengan nama dan password hotspot HP kamu!
-const char* ssid = "HAYYIN_HOTSPOT";        // ← GANTI INI
-const char* password = "12345678";          // ← GANTI INI
+const char* ssid = "Kost Premium";
+const char* password = "kostbusripit";
 const char* supabase_url = "https://dsdtxqpzofrvzxpyktoo.supabase.co";
 const char* supabase_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRzZHR4cXB6b2Zydnp4cHlrdG9vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyODUxODAsImV4cCI6MjA5Mjg2MTE4MH0.lX5Y9VvXpDhL2dkem4uRLDFL36CPmAGGCo7c3MxOeVk";
 const char* device_id = "ESP32-BOTOL-01";
@@ -38,7 +32,7 @@ String session_token = "";
 String current_user_id = "";
 String current_user_name = "";
 unsigned long lastSessionCheck = 0;
-#define SESSION_CHECK_INTERVAL 10000 // Check every 10 seconds (lebih responsif)
+#define SESSION_CHECK_INTERVAL 3000 // Check every 3 seconds (lebih responsif untuk logout)
 
 unsigned long lastIpRegistration = 0;
 #define IP_REGISTRATION_INTERVAL 300000 // Re-register IP every 5 minutes (300000ms)
@@ -52,8 +46,11 @@ unsigned long lastIpRegistration = 0;
 #define PIN_BUZZER 23
 #define PIN_IR_LAMP 13
 #define PIN_METAL_SENSOR 25      // Sensor proximity metal (digital input)
-#define PIN_LED_GREEN 26         // ← BARU: LED hijau (botol accepted)
-#define PIN_LED_RED 27           // ← BARU: LED merah (botol rejected)
+
+// --- KONFIGURASI JARAK SENSOR (OFFSET CALIBRATION) ---
+// Jarak dari sensor ke target saat box KOSONG (tidak ada botol)
+#define SENSOR_HEIGHT_OFFSET 20  // cm - Jarak sensor atas ke dasar box
+#define SENSOR_LENGTH_OFFSET 25  // cm - Jarak sensor samping ke dinding berlawanan
 
 // --- KONFIGURASI SERVO ---
 #define SERVO_OPEN_ANGLE 90
@@ -63,30 +60,33 @@ unsigned long lastIpRegistration = 0;
 // ⚠️ PENTING: Botol diletakkan HORIZONTAL (tidur)
 // - Sensor HEIGHT mengukur DIAMETER botol
 // - Sensor LENGTH mengukur PANJANG botol
-// - TIDAK PAKAI LOAD CELL (simplified design)
+// - Data berdasarkan ukuran botol REAL di pasaran Indonesia
 
-// Botol KECIL (contoh: botol air mineral 330ml)
-// Panjang: 8-13cm, Diameter: 5-11cm
+// Botol KECIL (220ml - 330ml)
+// Contoh: Aqua 220ml, Aqua 330ml, VIT 330ml
+// Diameter: 5.5-6.5cm, Panjang: 12-16cm
 #define SMALL_HEIGHT_MIN 5      // Diameter min (sensor HEIGHT)
-#define SMALL_HEIGHT_MAX 11     // Diameter max
-#define SMALL_LENGTH_MIN 8     // Panjang min (sensor LENGTH)
-#define SMALL_LENGTH_MAX 13     // Panjang max
+#define SMALL_HEIGHT_MAX 7     // Diameter max (dengan margin)
+#define SMALL_LENGTH_MIN 10     // Panjang min (dengan margin)
+#define SMALL_LENGTH_MAX 17     // Panjang max
 #define SMALL_POINTS 5
 
-// Botol SEDANG (contoh: botol air mineral 600ml)
-// Panjang: 15-20cm, Diameter: 12-16cm
-#define MEDIUM_HEIGHT_MIN 12     // Diameter min (sensor HEIGHT)
-#define MEDIUM_HEIGHT_MAX 16     // Diameter max
-#define MEDIUM_LENGTH_MIN 15    // Panjang min (sensor LENGTH)
-#define MEDIUM_LENGTH_MAX 20    // Panjang max
+// Botol SEDANG (450ml - 600ml)
+// Contoh: Aqua 600ml, VIT 500ml, Le Minerale 600ml
+// Diameter: 6.5-7.5cm, Panjang: 17-20cm
+#define MEDIUM_HEIGHT_MIN 6     // Diameter min (overlap dengan SMALL ok)
+#define MEDIUM_HEIGHT_MAX 8     // Diameter max (dengan margin)
+#define MEDIUM_LENGTH_MIN 16    // Panjang min (overlap ok)
+#define MEDIUM_LENGTH_MAX 22    // Panjang max
 #define MEDIUM_POINTS 10
 
-// Botol BESAR (contoh: botol air mineral 1.5L)
-// Panjang: 21-30cm, Diameter: 18-22cm
-#define LARGE_HEIGHT_MIN 18      // Diameter min (sensor HEIGHT)
-#define LARGE_HEIGHT_MAX 22     // Diameter max
-#define LARGE_LENGTH_MIN 21     // Panjang min (sensor LENGTH)
-#define LARGE_LENGTH_MAX 30     // Panjang max
+// Botol BESAR (1L - 1.5L)
+// Contoh: Aqua 1.5L, VIT 1L, Le Minerale 1.5L
+// Diameter: 8-10cm, Panjang: 22-30cm
+#define LARGE_HEIGHT_MIN 8      // Diameter min (overlap ok)
+#define LARGE_HEIGHT_MAX 11    // Diameter max (dengan margin)
+#define LARGE_LENGTH_MIN 20     // Panjang min (overlap ok)
+#define LARGE_LENGTH_MAX 25     // Panjang max (dengan margin dari offset 35cm)
 #define LARGE_POINTS 15
 
 // Batas minimum dan maksimum keseluruhan
@@ -184,6 +184,25 @@ bool readMetalSensor() {
   // Sensor proximity metal biasanya LOW = terdeteksi, HIGH = tidak terdeteksi
   // Sesuaikan dengan jenis sensor yang digunakan
   return digitalRead(PIN_METAL_SENSOR) == LOW;
+}
+
+// --- FUNGSI KONVERSI JARAK SENSOR KE UKURAN BOTOL ---
+// Convert jarak sensor (raw reading) ke ukuran botol sebenarnya
+int sensorDistanceToBottleSize(int sensorReading, int sensorOffset) {
+  // Validasi reading
+  if (sensorReading < 2 || sensorReading >= sensorOffset) {
+    return -1;  // Invalid: sensor terlalu dekat atau tidak ada botol
+  }
+  
+  // Ukuran botol = offset (jarak kosong) - reading (jarak ada botol)
+  int bottleSize = sensorOffset - sensorReading;
+  
+  // Validasi ukuran botol (harus masuk akal)
+  if (bottleSize < 3 || bottleSize > 35) {
+    return -1;  // Invalid: botol terlalu kecil atau terlalu besar
+  }
+  
+  return bottleSize;
 }
 
 // --- FUNGSI HAPUS SESSION (BARU!) ---
@@ -429,32 +448,6 @@ void buzzMetalAlert() {
   }
 }
 
-// ← BARU: LED Control Functions
-void ledGreenOn() {
-  digitalWrite(PIN_LED_GREEN, HIGH);
-  digitalWrite(PIN_LED_RED, LOW);
-}
-
-void ledRedOn() {
-  digitalWrite(PIN_LED_GREEN, LOW);
-  digitalWrite(PIN_LED_RED, HIGH);
-}
-
-void ledAllOff() {
-  digitalWrite(PIN_LED_GREEN, LOW);
-  digitalWrite(PIN_LED_RED, LOW);
-}
-
-// ← BARU: LED blink untuk warning
-void ledRedBlink(int count) {
-  for (int i = 0; i < count; i++) {
-    digitalWrite(PIN_LED_RED, HIGH);
-    delay(200);
-    digitalWrite(PIN_LED_RED, LOW);
-    delay(200);
-  }
-}
-
 // Variabel untuk mencegah LCD berkedip
 String lastLcdLine0 = "";
 String lastLcdLine1 = "";
@@ -652,12 +645,8 @@ void setup() {
   pinMode(PIN_ECHO_LENGTH, INPUT);       // ← Ubah dari INPUT_PULLDOWN ke INPUT
   pinMode(PIN_BUZZER, OUTPUT);
   pinMode(PIN_IR_LAMP, OUTPUT);
+  digitalWrite(PIN_IR_LAMP, LOW);        // ← PENTING: Matikan IR lamp (default OFF)
   pinMode(PIN_METAL_SENSOR, INPUT_PULLUP);  // ← TAMBAHAN: Metal sensor
-  pinMode(PIN_LED_GREEN, OUTPUT);          // ← BARU: LED hijau
-  pinMode(PIN_LED_RED, OUTPUT);            // ← BARU: LED merah
-  
-  // Initialize LEDs (all OFF)
-  ledAllOff();
   
   // ============================================
   // SETUP LCD dengan DIAGNOSTIK (BARU!)
@@ -700,35 +689,20 @@ void setup() {
   } else {
     Serial.printf("[LCD] Found %d I2C device(s)\n", nDevices);
     
-    // Jika tidak ada alamat LCD standar, coba alamat pertama yang ditemukan
-    if (lcdAddress == 0) {
-      Serial.println("[LCD] ⚠️ No standard LCD address found, trying first device...");
-      // Scan ulang untuk ambil alamat pertama
-      for(address = 1; address < 127; address++) {
-        Wire.beginTransmission(address);
-        if (Wire.endTransmission() == 0) {
-          lcdAddress = address;
-          break;
-        }
-      }
-    }
-    
-    if (lcdAddress > 0) {
-      Serial.print("[LCD] Using address: 0x");
+    // Jika ada alamat LCD standar (0x27 atau 0x3F), langsung pakai
+    if (lcdAddress == 0x27 || lcdAddress == 0x3F) {
+      Serial.print("[LCD] ✅ Standard LCD address found: 0x");
       Serial.println(lcdAddress, HEX);
       
-      // Initialize LCD
       lcd = new LiquidCrystal_I2C(lcdAddress, 16, 2);
       lcd->init();
       lcd->backlight();
-      lcd->noCursor();
-      lcd->noBlink();
       delay(100);
       
-      // Test LCD
+      // Test LCD dengan text lengkap
       lcd->clear();
       lcd->setCursor(0, 0);
-      lcd->print("LCD TEST OK!");
+      lcd->print("LCD INIT OK!");
       lcd->setCursor(0, 1);
       lcd->print("Addr: 0x");
       lcd->print(lcdAddress, HEX);
@@ -736,9 +710,45 @@ void setup() {
       Serial.println("[LCD] ✅ LCD initialized successfully!");
       lcdConnected = true;
       delay(2000);
-    } else {
-      Serial.println("[LCD] ❌ Failed to find valid LCD address");
-      lcdConnected = false;
+    }
+    // Jika tidak ada alamat LCD standar, coba alamat pertama yang ditemukan
+    else if (lcdAddress == 0) {
+      Serial.println("[LCD] ⚠️ No standard LCD address found, trying first device...");
+      // Scan ulang untuk ambil alamat pertama
+      for(address = 1; address < 127; address++) {
+        Wire.beginTransmission(address);
+        if (Wire.endTransmission() == 0) {
+          lcdAddress = address;
+          Serial.print("[LCD] Trying address: 0x");
+          if (lcdAddress < 16) Serial.print("0");
+          Serial.println(lcdAddress, HEX);
+          
+          // Test initialize dengan address ini
+          lcd = new LiquidCrystal_I2C(lcdAddress, 16, 2);
+          lcd->init();
+          lcd->backlight();
+          delay(100);
+          
+          // Coba print test
+          lcd->clear();
+          lcd->setCursor(0, 0);
+          lcd->print("TEST");
+          delay(500);
+          
+          // Jika sampai sini tanpa crash, assume berhasil
+          Serial.println("[LCD] ✅ Address accepted!");
+          lcdConnected = true;
+          break;
+        }
+      }
+      
+      if (!lcdConnected) {
+        Serial.println("[LCD] ❌ No working LCD address found");
+        Serial.println("[LCD] Please check:");
+        Serial.println("[LCD]   - LCD I2C module is connected (not other I2C device)");
+        Serial.println("[LCD]   - Try adjusting potentiometer on LCD");
+        Serial.println("[LCD]   - Verify SDA/SCL wiring");
+      }
     }
   }
   
@@ -916,21 +926,27 @@ void loop() {
       Serial.println("[Test] Reading HEIGHT sensor (5 samples)...");
       for (int i = 0; i < 5; i++) {
         int h = readUltrasonicRawCm(PIN_TRIG_HEIGHT, PIN_ECHO_HEIGHT);
-        Serial.printf("  Sample %d: %d cm\n", i+1, h);
+        Serial.printf("  Sample %d: %d cm (raw distance)\n", i+1, h);
         delay(100);
       }
-      int heightStable = readUltrasonicStableCm(PIN_TRIG_HEIGHT, PIN_ECHO_HEIGHT);
-      Serial.printf("[Test] HEIGHT (stable): %d cm\n\n", heightStable);
+      int heightRaw = readUltrasonicStableCm(PIN_TRIG_HEIGHT, PIN_ECHO_HEIGHT);
+      int heightBottle = sensorDistanceToBottleSize(heightRaw, SENSOR_HEIGHT_OFFSET);
+      Serial.printf("[Test] HEIGHT: %d cm (raw) → %d cm (bottle diameter)\n", 
+                    heightRaw, heightBottle);
+      Serial.printf("[Test] Offset: %d cm\n\n", SENSOR_HEIGHT_OFFSET);
       
       // Test LENGTH sensor
       Serial.println("[Test] Reading LENGTH sensor (5 samples)...");
       for (int i = 0; i < 5; i++) {
         int l = readUltrasonicRawCm(PIN_TRIG_LENGTH, PIN_ECHO_LENGTH);
-        Serial.printf("  Sample %d: %d cm\n", i+1, l);
+        Serial.printf("  Sample %d: %d cm (raw distance)\n", i+1, l);
         delay(100);
       }
-      int lengthStable = readUltrasonicStableCm(PIN_TRIG_LENGTH, PIN_ECHO_LENGTH);
-      Serial.printf("[Test] LENGTH (stable): %d cm\n\n", lengthStable);
+      int lengthRaw = readUltrasonicStableCm(PIN_TRIG_LENGTH, PIN_ECHO_LENGTH);
+      int lengthBottle = sensorDistanceToBottleSize(lengthRaw, SENSOR_LENGTH_OFFSET);
+      Serial.printf("[Test] LENGTH: %d cm (raw) → %d cm (bottle length)\n", 
+                    lengthRaw, lengthBottle);
+      Serial.printf("[Test] Offset: %d cm\n\n", SENSOR_LENGTH_OFFSET);
       
       // Test METAL sensor
       Serial.println("[Test] Reading METAL sensor...");
@@ -939,18 +955,19 @@ void loop() {
       
       Serial.println("=================================");
       Serial.println("[Test] Summary:");
-      Serial.printf("  Height: %d cm\n", heightStable);
-      Serial.printf("  Length: %d cm\n", lengthStable);
+      Serial.printf("  Raw readings: H=%dcm L=%dcm\n", heightRaw, lengthRaw);
+      Serial.printf("  Bottle size:  H=%dcm L=%dcm\n", heightBottle, lengthBottle);
       Serial.printf("  Metal: %s\n", metal ? "YES" : "NO");
+      Serial.println("[Test] Note: Negative bottle size = no bottle detected");
       Serial.println("=================================");
       
       // Display on LCD
       if (lcdConnected) {
         lcd->clear();
         lcd->setCursor(0, 0);
-        lcd->print("H:" + String(heightStable) + " L:" + String(lengthStable));
+        lcd->print("H:" + String(heightBottle) + " L:" + String(lengthBottle));
         lcd->setCursor(0, 1);
-        lcd->print("W:" + String(w, 1) + "g M:" + String(metal ? "Y" : "N"));
+        lcd->print("M:" + String(metal ? "Y" : "N"));
       }
     }
   }
@@ -959,32 +976,58 @@ void loop() {
   if (USE_QR_LOGIN && millis() - lastSessionCheck > SESSION_CHECK_INTERVAL && current_user_id.length() > 0) {
     lastSessionCheck = millis();
     if (!getUserFromSession()) {
-      Serial.println("[Session] Session expired");
-      gateState = WAIT_USER;
+      Serial.println("[Session] ❌ Session not found or expired");
+      Serial.println("[Session] User logged out or session deleted");
+      Serial.println("[Session] Ending IoT session...");
+      
+      // Clear local session data
+      session_token = "";
       current_user_id = "";
       current_user_name = "";
-      lcdPrintLine(0, "SESSION EXPIRED");
+      
+      // Reset to wait user state
+      gateState = WAIT_USER;
+      
+      // Close gate if open
+      closeGate();
+      
+      // Display message
+      lcdPrintLine(0, "SESSION ENDED");
       lcdPrintLine(1, "SCAN QR AGAIN");
       buzzShort(3);
+      
+      Serial.println("[Session] ✅ IoT session ended, ready for new user");
       delay(2000);
     }
   }
   
   // Read sensors
   if (millis() - lastSensorReadAt > 120) {
-    heightCm = readUltrasonicStableCm(PIN_TRIG_HEIGHT, PIN_ECHO_HEIGHT);
+    // Baca jarak RAW dari sensor (jarak sensor ke botol)
+    int rawHeight = readUltrasonicStableCm(PIN_TRIG_HEIGHT, PIN_ECHO_HEIGHT);
     delay(100);  // Tingkatkan delay untuk menghindari interferensi
-    lengthCm = readUltrasonicStableCm(PIN_TRIG_LENGTH, PIN_ECHO_LENGTH);
+    int rawLength = readUltrasonicStableCm(PIN_TRIG_LENGTH, PIN_ECHO_LENGTH);
     delay(100);  // Tingkatkan delay
+    
+    // Convert jarak sensor ke ukuran botol SEBENARNYA
+    heightCm = sensorDistanceToBottleSize(rawHeight, SENSOR_HEIGHT_OFFSET);
+    lengthCm = sensorDistanceToBottleSize(rawLength, SENSOR_LENGTH_OFFSET);
+    
+    // Debug output (opsional, uncomment untuk troubleshooting)
+    // if (rawHeight < SENSOR_HEIGHT_OFFSET || rawLength < SENSOR_LENGTH_OFFSET) {
+    //   Serial.printf("[Sensor] Raw: H=%dcm L=%dcm → Bottle: H=%dcm L=%dcm\n", 
+    //                 rawHeight, rawLength, heightCm, lengthCm);
+    // }
+    
     // weightGram = readWeight();           // ← DISABLED: Berat dinonaktifkan untuk sementara
     isMetalDetected = readMetalSensor(); // ← TAMBAHAN: Cek metal
     lastSensorReadAt = millis();
   }
   
-  bool bottlePresent = (heightCm > 0 && heightCm <= OBJECT_PRESENT_CM) || 
-                       (lengthCm > 0 && lengthCm <= OBJECT_PRESENT_CM);
-  bool bottleGone = ((heightCm < 0 || heightCm >= OBJECT_GONE_CM) && 
-                     (lengthCm < 0 || lengthCm >= OBJECT_GONE_CM));
+  bool bottlePresent = (heightCm >= 3 && heightCm <= 15) && 
+                       (lengthCm >= 8 && lengthCm <= 35);
+  bool bottleGone = (heightCm < 0 || heightCm < 3) && 
+                    (lengthCm < 0 || lengthCm < 8);
   
   // Debug: Print sensor readings (DISABLED - focus transaksi saja)
   // if (bottlePresent) {
@@ -994,6 +1037,7 @@ void loop() {
   // State machine (dengan static state untuk mencegah update berulang)
   static GateState lastDisplayedState = REJECT_HOLD; // Init dengan state yang tidak mungkin
   static String lastDisplayedUser = "";
+  static bool bottleProcessed = false;  // Flag untuk prevent repeated classification
   
   if (gateState == WAIT_USER) {
     if (lastDisplayedState != WAIT_USER) {
@@ -1018,22 +1062,22 @@ void loop() {
       }
     }
     
-    if (bottlePresent && (millis() - lastDecisionAt > DECISION_COOLDOWN_MS)) {
+    if (bottlePresent && !bottleProcessed && (millis() - lastDecisionAt > DECISION_COOLDOWN_MS)) {
       // CEK LOGAM TERLEBIH DAHULU
       if (isMetalDetected) {
-        ledRedOn();          // ← BARU: LED merah ON
         closeGate();
-        buzzMetalAlert();    // ← BARU: 3x beep cepat untuk warning metal
+        buzzMetalAlert();    // ← 3x beep cepat untuk warning metal
         lcdPrintLine(0, "BOTOL CACAT");
         lcdPrintLine(1, "ADA LOGAM");
         lastDisplayedState = REJECT_HOLD;
         
         Serial.println("[Metal] ⚠️ LOGAM TERDETEKSI - REJECT");
+        Serial.println("[Bottle] Height: " + String(heightCm) + "cm, Length: " + String(lengthCm) + "cm");
+        Serial.println("[Bottle] Metal: DETECTED");
         
         delay(1000);
-        ledRedBlink(5);      // ← BARU: Blink 5x untuk strong warning
-        ledAllOff();         // ← BARU: Matikan LED
         
+        bottleProcessed = true;  // Mark as processed to prevent re-detection
         gateState = REJECT_HOLD;
         stateStartedAt = millis();
       } else {
@@ -1042,7 +1086,6 @@ void loop() {
         currentBottlePoints = getBottlePoints(currentBottleSize);
         
         if (currentBottleSize != NONE) {
-          ledGreenOn();      // ← BARU: LED hijau ON (botol accepted)
           openGate();
           buzzShort(1);
           
@@ -1054,11 +1097,12 @@ void loop() {
           Serial.println("[Bottle] Size: " + sizeName);
           Serial.println("[Bottle] Height: " + String(heightCm) + "cm, Length: " + String(lengthCm) + "cm");
           Serial.println("[Bottle] Points: " + String(currentBottlePoints));
+          Serial.println("[Bottle] Metal: NOT DETECTED");
           
+          bottleProcessed = true;  // Mark as processed to prevent re-detection
           gateState = WAIT_PASS;
           stateStartedAt = millis();
         } else {
-          ledRedOn();        // ← BARU: LED merah ON (botol rejected)
           closeGate();
           buzzShort(2);
           lcdPrintLine(0, "UKURAN SALAH");
@@ -1066,11 +1110,11 @@ void loop() {
           lastDisplayedState = REJECT_HOLD; // Update state
           
           Serial.println("[Bottle] REJECTED - Height: " + String(heightCm) + "cm, Length: " + String(lengthCm) + "cm");
+          Serial.println("[Bottle] Metal: NOT DETECTED");
           
           delay(1000);
-          ledRedBlink(3);    // ← BARU: Blink 3x untuk warning
-          ledAllOff();       // ← BARU: Matikan LED
           
+          bottleProcessed = true;  // Mark as processed to prevent re-detection
           gateState = REJECT_HOLD;
           stateStartedAt = millis();
         }
@@ -1102,13 +1146,13 @@ void loop() {
       lcdPrintLine(1, sizeName + " " + String(currentBottlePoints) + "PT");
       delay(1000);
       
-      ledAllOff();           // ← BARU: Matikan LED setelah transaksi selesai
-      
       // Auto-logout setelah transaksi (untuk keamanan)
       if (USE_QR_LOGIN && current_user_id.length() > 0) {
+        Serial.println("[Session] Auto-logout after transaction...");
         lcdPrintLine(1, "LOGGING OUT...");
         delay(1000);
-        deleteSession();
+        deleteSession();  // Hapus session dari server (end session)
+        Serial.println("[Session] User logged out, IoT session ended");
         lcdPrintLine(0, "THANK YOU!");
         lcdPrintLine(1, current_user_name.substring(0, 16));
         delay(2000);
@@ -1119,6 +1163,7 @@ void loop() {
       // Reset bottle size
       currentBottleSize = NONE;
       currentBottlePoints = 0;
+      bottleProcessed = false;  // Reset flag for next bottle
       lastDisplayedState = REJECT_HOLD; // Force update LCD
       
       gateState = USE_QR_LOGIN ? WAIT_USER : WAIT_BOTTLE;
@@ -1131,6 +1176,7 @@ void loop() {
       // Reset bottle size
       currentBottleSize = NONE;
       currentBottlePoints = 0;
+      bottleProcessed = false;  // Reset flag for next bottle
       
       delay(1000);
       lastDisplayedState = REJECT_HOLD; // Force update LCD
@@ -1139,6 +1185,7 @@ void loop() {
   } 
   else if (gateState == REJECT_HOLD) {
     if (millis() - stateStartedAt > REJECT_HOLD_MS) {
+      bottleProcessed = false;  // Reset flag for next bottle
       lastDisplayedState = REJECT_HOLD; // Force update LCD
       gateState = WAIT_BOTTLE;
     }

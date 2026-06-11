@@ -231,7 +231,7 @@ export default function DeviceQRPage() {
               <div className="bg-white dark:bg-slate-800 p-8 rounded-xl border-4 border-blue-500 shadow-2xl">
                 <div className="flex flex-col items-center">
                   <h3 className="text-2xl font-bold mb-2 text-blue-900 dark:text-blue-300">
-                    🏦 Bank Sampah Digital
+                    🏦 Smart Bottle Waste Bank
                   </h3>
                   <p className="text-sm text-muted-foreground mb-6">
                     Scan untuk Login & Mulai Transaksi
